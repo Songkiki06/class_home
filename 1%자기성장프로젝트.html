@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>1% 월간 자기성장 리포트</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root { --primary: #34495e; --accent: #27ae60; --bg: #f0f2f5; }
+        body { font-family: 'Pretendard', sans-serif; background: var(--bg); margin: 0; padding: 20px; color: #333; line-height: 1.6; }
+        .container { max-width: 600px; margin: 0 auto; }
+        .card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); margin-bottom: 20px; }
+        h1 { text-align: center; color: var(--primary); font-size: 1.5rem; margin-bottom: 25px; }
+        label { display: block; margin-top: 15px; font-weight: 700; color: #555; font-size: 0.95rem; }
+        input, textarea, select { width: 100%; padding: 12px; margin-top: 8px; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 1rem; }
+        .btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 25px; }
+        button { padding: 16px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 1rem; transition: 0.2s; }
+        .btn-submit { background: var(--accent); color: white; }
+        .btn-reset { background: #e74c3c; color: white; }
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; display: none; }
+        .stat-box { background: white; padding: 15px; border-radius: 10px; text-align: center; border-bottom: 4px solid var(--accent); }
+        .stat-num { display: block; font-size: 1.6rem; font-weight: 800; color: var(--accent); }
+        #statusMsg { text-align: center; margin-top: 15px; font-weight: bold; min-height: 1.5em; }
+        #formFields, #chartCard { display: none; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🌱 1% 월간 자기성장 리포트</h1>
+
+    <div id="statsDisplay" class="stats-grid">
+        <div class="stat-box"><span>나의 기록 횟수</span><span id="totalMonths" class="stat-num">0</span></div>
+        <div class="stat-box"><span>나의 성장 지수</span><span id="currentLevel" class="stat-num">100%</span></div>
+    </div>
+
+    <div class="card">
+        <label>1. 학번과 이름</label>
+        <input type="text" id="studentInfo" placeholder="예: 20101 홍길동" oninput="loadStudentData()">
+
+        <div id="formFields">
+            <label>2. 성찰 대상 월 (자동 선택됨)</label>
+            <select id="monthSelect">
+                <option value="">-- 월 선택 --</option>
+                <option value="3월">3월</option><option value="4월">4월</option><option value="5월">5월</option>
+                <option value="6월">6월</option><option value="7월">7월</option><option value="8월">8월</option>
+                <option value="9월">9월</option><option value="10월">10월</option><option value="11월">11월</option><option value="12월">12월</option>
+            </select>
+
+            <label>3. 이번 달 핵심 성취</label>
+            <textarea id="achievement" rows="2" placeholder="무엇을 해냈나요?"></textarea>
+
+            <label>4. 종합 성찰</label>
+            <textarea id="monthlyReview" rows="4" placeholder="자신의 변화와 느낀 점을 적어주세요."></textarea>
+
+            <label>5. 다음 달의 나에게(할 일/목표)</label>
+            <textarea id="nextGoal" rows="2" placeholder="한 가지 구체적인 목표"></textarea>
+
+            <div class="btn-group">
+                <button class="btn-reset" onclick="forceReset()">데이터 초기화</button>
+                <button id="submitBtn" class="btn-submit" onclick="submitToTeacher()">기록 및 전송</button>
+            </div>
+        </div>
+        <div id="statusMsg">학번과 이름을 입력해주세요.</div>
+    </div>
+
+    <div class="card" id="chartCard"><canvas id="monthlyChart"></canvas></div>
+</div>
+
+<script>
+    const FORM_ACTION_URL = "https://docs.google.com/forms/d/e/1FAIpQLSfZ9BcZrYjDVFbQCsEWxJrRN3_rHUc9lDgss3rn1xjOZtLJYA/formResponse";
+    
+    // 선생님이 주신 새로운 항목 ID 반영
+    const ENTRY_IDS = {
+        name: "entry.1417917837",  
+        month: "entry.1958463858", 
+        ach: "entry.1984054856",   
+        rev: "entry.391218196",    
+        next: "entry.1439286676",
+        score: "entry.1906608786" // [추가됨] 성장 지수 점수 ID
+    };
+
+    let myChart;
+
+    function setAutoMonth() {
+        const currentMonth = new Date().getMonth() + 1;
+        const monthStr = currentMonth + "월";
+        const select = document.getElementById('monthSelect');
+        for (let i = 0; i < select.options.length; i++) {
+            if (select.options[i].value === monthStr) {
+                select.selectedIndex = i; break;
+            }
+        }
+    }
+
+    function loadStudentData() {
+        const name = document.getElementById('studentInfo').value.trim();
+        const status = document.getElementById('statusMsg');
+        const formFields = document.getElementById('formFields');
+        const statsDisplay = document.getElementById('statsDisplay');
+        const chartCard = document.getElementById('chartCard');
+        
+        if(!name || name.length < 2) {
+            formFields.style.display = "none";
+            statsDisplay.style.display = "none";
+            chartCard.style.display = "none";
+            status.innerText = "학번과 이름을 입력해주세요.";
+            return;
+        }
+
+        formFields.style.display = "block";
+        statsDisplay.style.display = "grid";
+        chartCard.style.display = "block";
+        setAutoMonth();
+
+        // 20201 학생 데이터가 남아있는 문제를 해결하기 위해,
+        // 이 학생의 실제 기록만 필터링하여 가져옵니다.
+        const allLogs = JSON.parse(localStorage.getItem('allStudentsLogs')) || {};
+        const studentLogs = allLogs[name] || [];
+        updateUI(studentLogs);
+        status.innerText = studentLogs.length > 0 ? `✨ ${name} 학생의 기록을 불러왔습니다.` : "첫 기록을 환영합니다!";
+    }
+
+    function updateUI(logs) {
+        document.getElementById('totalMonths').innerText = logs.length;
+        document.getElementById('currentLevel').innerText = logs.length > 0 ? (100 + logs.length * 5) + "%" : "100%";
+        renderChart(logs);
+    }
+
+    function forceReset() {
+        if(confirm("모든 기기 내 기록을 삭제할까요?")) {
+            localStorage.clear();
+            location.reload();
+        }
+    }
+
+    function submitToTeacher() {
+        const name = document.getElementById('studentInfo').value.trim();
+        const month = document.getElementById('monthSelect').value;
+        const ach = document.getElementById('achievement').value;
+        const rev = document.getElementById('monthlyReview').value;
+        const next = document.getElementById('nextGoal').value;
+        const btn = document.getElementById('submitBtn');
+
+        if(!name || !month || !ach || !rev || !next) { alert("모든 항목을 입력해주세요!"); return; }
+
+        btn.disabled = true;
+        document.getElementById('statusMsg').innerText = "🚀 선생님께 전송 중...";
+
+        // 1. 전송 전 현재 점수 계산
+        let allLogs = JSON.parse(localStorage.getItem('allStudentsLogs')) || {};
+        if(!allLogs[name]) allLogs[name] = [];
+        const newScore = 100 + (allLogs[name].length + 1) * 5;
+        
+        // 2. 로컬에 먼저 저장 (UI 갱신용)
+        allLogs[name].push({ month, point: newScore });
+        localStorage.setItem('allStudentsLogs', JSON.stringify(allLogs));
+        updateUI(allLogs[name]);
+
+        // 3. 구글 설문지 데이터 전송
+        const iframe = document.createElement('iframe');
+        iframe.name = "hidden_iframe"; iframe.style.display = "none";
+        document.body.appendChild(iframe);
+
+        const form = document.createElement('form');
+        form.action = FORM_ACTION_URL; form.method = "POST"; form.target = "hidden_iframe";
+
+        const fields = [
+            { id: ENTRY_IDS.name, val: name },
+            { id: ENTRY_IDS.month, val: month },
+            { id: ENTRY_IDS.ach, val: ach },
+            { id: ENTRY_IDS.rev, val: rev },
+            { id: ENTRY_IDS.next, val: next },
+            { id: ENTRY_IDS.score, val: newScore } // [핵심] 점수 데이터 포함
+        ];
+
+        fields.forEach(f => {
+            const input = document.createElement('input');
+            input.type = "hidden"; input.name = f.id; input.value = f.val;
+            form.appendChild(input);
+        });
+
+        document.body.appendChild(form);
+        form.submit();
+
+        // 4. 보안을 위한 4초 후 자동 초기화
+        setTimeout(() => {
+            localStorage.clear(); // 개인정보 및 테스트용 20201 흔적 제거
+            alert(`성공적으로 전송되었습니다! 성장 지수 ${newScore}% 달성!`);
+            location.reload(); 
+        }, 4000);
+    }
+
+    function renderChart(logs) {
+        const ctx = document.getElementById('monthlyChart').getContext('2d');
+        if(myChart) myChart.destroy();
+        myChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: logs.map(l => l.month),
+                datasets: [{
+                    label: '성장 지수',
+                    data: logs.map(l => l.point),
+                    borderColor: '#27ae60',
+                    backgroundColor: 'rgba(39, 174, 96, 0.1)',
+                    fill: true,
+                    tension: 0.3
+                }]
+            },
+            options: { 
+                scales: { y: { beginAtZero: false, min: 95, max: 160 } },
+                plugins: { legend: { display: false } }
+            }
+        });
+    }
+
+    window.onload = () => { document.getElementById('studentInfo').value = ""; };
+</script>
+</body>
+</html>
