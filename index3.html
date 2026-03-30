@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>[공유지] 디렉터 활동 성찰 및 5분 스피치</title>
+    <style>
+        :root { --primary: #1a3a5f; --secondary: #3498db; --bg: #f4f7f9; }
+        body { font-family: 'Pretendard', sans-serif; background-color: var(--bg); color: #333; margin: 0; padding: 20px; line-height: 1.6; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); border-top: 8px solid var(--primary); }
+        h1 { color: var(--primary); text-align: center; margin-bottom: 30px; font-size: 24px; border-bottom: 2px double #eee; padding-bottom: 15px; }
+        h2 { font-size: 18px; color: var(--primary); margin-top: 35px; border-left: 4px solid var(--primary); padding-left: 10px; border-bottom: 1px solid #eee; padding-bottom: 5px; }
+        label { display: block; font-weight: 600; margin: 15px 0 8px; font-size: 14px; color: #2c3e50; }
+        input, textarea { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-size: 15px; }
+        textarea { height: 110px; resize: vertical; }
+        .badge { display: inline-block; padding: 2px 8px; background: #eef2f7; border-radius: 4px; font-size: 11px; color: #34495e; margin-bottom: 5px; }
+        button { width: 100%; padding: 18px; background: var(--primary); color: white; border: none; border-radius: 6px; font-size: 18px; font-weight: bold; cursor: pointer; margin-top: 40px; transition: 0.3s; }
+        button:hover { background: #2c3e50; transform: translateY(-2px); }
+        #loading { display: none; text-align: center; margin-top: 20px; color: var(--secondary); font-weight: bold; }
+        #success-area { display: none; margin-top: 30px; padding: 25px; background: #f0fff4; border: 2px solid #38a169; border-radius: 8px; text-align: center; }
+    </style>
+</head>
+<body>
+
+<div class="container" id="main-form">
+    <h1>[공유지] 디렉터 활동 성찰 및 5분 스피치</h1>
+    
+    <h2>1. 기본 정보</h2>
+    <label>디렉터 성명</label>
+    <input type="text" id="name" placeholder="성명을 입력하세요">
+
+    <label>운영 구역</label>
+    <input type="text" id="sector" placeholder="예: 아고라, 인사이트 서재 등">
+
+    <h2>2. 활동 성찰 기록</h2>
+    <span class="badge">자기주도성</span>
+    <label>1. 탐구 주제 및 선정 동기</label>
+<textarea id="q1" placeholder="왜 이 주제에 관심을 가졌으며, 정보 수집을 위해 어떤 노력을 했나요?"></textarea>
+    
+    <span class="badge">창의성 / 전공역량</span>
+    <label>2. 지식 가공 및 공유 방법</label>
+<textarea id="q2" placeholder="동료들에게 정보를 효과적으로 전달하기 위해 기획한 본인만의 방식은?"></textarea>
+    
+    <span class="badge">공동체 의식</span>
+    <label>3. 동료와의 상호작용 및 성장</label>
+<textarea id="q3" placeholder="동료들의 질문이나 피드백을 통해 새롭게 깨달은 점이나 보완한 내용은?"></textarea>
+
+    <h2>3. 5분 스피치 시나리오</h2>
+    <label>[오프닝] 청중의 흥미 유도</label>
+    <textarea id="sp_intro" placeholder="발표를 시작하며 친구들의 관심을 끌 수 있는 질문을 적어보세요."></textarea>
+    
+    <label>[본론] 핵심 지식과 나만의 통찰</label>
+    <textarea id="sp_body" placeholder="탐구한 지식의 핵심과 디렉터로서 본인이 느낀 점을 자유롭게 기록하세요."></textarea>
+    
+    <label>[클로징] 활동 요약 및 향후 의지</label>
+   <textarea id="sp_outro" placeholder="활동을 한 문장으로 요약하고, 앞으로의 다짐을 적어주세요."></textarea>
+
+    <button onclick="submitDirectly()">기록 즉시 제출하기</button>
+    <div id="loading">새로운 시트로 데이터를 전송 중입니다...</div>
+</div>
+
+<div class="container" id="success-area">
+    <h2 style="border:none; color:#2f855a;">🎉 제출 완료!</h2>
+    <p>작성하신 내용은 지식 공유 플랫폼 운영 기록에 정상적으로 저장되었습니다.</p>
+    <button onclick="location.reload()">새로 작성하기</button>
+</div>
+
+<iframe name="hidden_iframe" id="hidden_iframe" style="display:none;" onload="if(submitted) {showSuccess();}"></iframe>
+
+<script>
+    let submitted = false;
+
+    function submitDirectly() {
+        const d = {
+            name: document.getElementById('name').value.trim(),
+            sector: document.getElementById('sector').value.trim(),
+            q1: document.getElementById('q1').value,
+            q2: document.getElementById('q2').value,
+            q3: document.getElementById('q3').value,
+            intro: document.getElementById('sp_intro').value,
+            body: document.getElementById('sp_body').value,
+            outro: document.getElementById('sp_outro').value
+        };
+
+        if(!d.name || !d.sector) { alert("성명과 운영구역을 입력해주세요."); return; }
+
+        // 새 폼 주소
+        const formAction = "https://docs.google.com/forms/d/e/1FAIpQLSdHzdn-aHTwD4m-L5Zc45EWM8l42Dg6hzFxtRvz5i3SNEApIQ/formResponse";
+        const form = document.createElement('form');
+        form.action = formAction;
+        form.method = 'POST';
+        form.target = 'hidden_iframe';
+
+        // 제공하신 최신 링크(1564333236...)의 8개 파라미터와 1:1 매칭
+        const fields = {
+            "entry.1564333236": d.name,   // 11 (성명)
+            "entry.507927919": d.sector,  // 22 (운영구역) -> 이제 2번째 칸에 정확히 들어갑니다.
+            "entry.1777234107": d.q1,     // 33 (탐구 주제)
+            "entry.1930647764": d.q2,     // 44 (지식 가공)
+            "entry.1231433931": d.q3,     // 55 (상호작용)
+            "entry.2023862571": d.intro,  // 66 (오프닝)
+            "entry.1555373246": d.body,   // 77 (본론)
+            "entry.1213508800": d.outro   // 88 (클로징)
+        };
+
+        for (let key in fields) {
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = key;
+            input.value = fields[key];
+            form.appendChild(input);
+        }
+
+        document.body.appendChild(form);
+        submitted = true;
+        document.getElementById('loading').style.display = 'block';
+        form.submit();
+    }
+
+    function showSuccess() {
+        document.getElementById('main-form').style.display = 'none';
+        document.getElementById('success-area').style.display = 'block';
+        window.scrollTo(0,0);
+    }
+</script>
+
+</body>
+</html>
