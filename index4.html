@@ -25,39 +25,44 @@
         <h2>동아리 활동일지</h2>
         
         <div class="section">
+            <label>활동 날짜</label>
+            <input type="date" id="dateInput">
+        </div>
+
+        <div class="section">
             <label>학번 및 이름</label>
-            <input type="text" id="e702667613" placeholder="학번 (예: 20101)" style="margin-bottom: 10px;">
-            <input type="text" id="e1733007318" placeholder="이름">
+            <input type="text" id="idInput" placeholder="학번 (예: 20101)" style="margin-bottom: 10px;">
+            <input type="text" id="nameInput" placeholder="이름">
         </div>
 
         <div class="section">
             <label>1. 오늘의 활동 목표</label>
             <p class="desc">오늘 우리 동아리(또는 나)가 달성하고자 한 구체적인 목표는 무엇인가요?</p>
-            <textarea id="e1605454970"></textarea>
+            <textarea id="goalInput"></textarea>
         </div>
 
         <div class="section">
             <label>2. 주요 활동 과정 (What I Did)</label>
             <p class="desc">단계별 과정과 본인이 구체적으로 맡았던 업무(역할)를 적어주세요.</p>
-            <textarea id="e572830936"></textarea>
+            <textarea id="processInput"></textarea>
         </div>
 
         <div class="section">
             <label>3. 핵심 내용 및 결과 (Key Findings)</label>
             <p class="desc">도출된 결론, 데이터, 또는 완성된 결과물의 핵심 요약</p>
-            <textarea id="e1891153261"></textarea>
+            <textarea id="resultInput"></textarea>
         </div>
 
         <div class="section">
             <label>4. 성찰 및 성장 (Growth & Insight)</label>
             <p class="desc">배운 점, 어려움 해결 과정, 오늘 나의 몰입도 등</p>
-            <textarea id="e1774381118"></textarea>
+            <textarea id="insightInput"></textarea>
         </div>
 
         <div class="section">
             <label>5. 다음 시간 연결 고리 (Next Step)</label>
             <p class="desc">해결하지 못한 궁금증이나 다음 시간 후속 활동 계획</p>
-            <textarea id="e270426395"></textarea>
+            <textarea id="nextInput"></textarea>
         </div>
 
         <button id="submitBtn" onclick="sendData()">활동일지 제출하기</button>
@@ -67,39 +72,41 @@
     <iframe name="hidden_iframe" id="hidden_iframe" style="display:none;"></iframe>
 
     <script>
-        // 제공해주신 주소를 기반으로 설정된 전송 URL
         const FORM_ACTION_URL = "https://docs.google.com/forms/d/e/1FAIpQLSdW05trqJcNXK6sChUSQpEHa4Dt2NFH_IP-4rgrD_ooEnWvgw/formResponse";
+
+        window.onload = function() {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('dateInput').value = today;
+        };
 
         function sendData() {
             const btn = document.getElementById('submitBtn');
             const status = document.getElementById('statusMsg');
             
-            // 데이터 수집 (각 요소의 ID는 설문지의 entry ID와 동일하게 설정함)
+            // [수정됨] 날짜와 학번의 entry ID를 서로 바꾸었습니다.
             const fields = {
-                "entry.702667613": document.getElementById('e702667613').value.trim(),
-                "entry.1733007318": document.getElementById('e1733007318').value.trim(),
-                "entry.1605454970": document.getElementById('e1605454970').value.trim(),
-                "entry.572830936": document.getElementById('e572830936').value.trim(),
-                "entry.1891153261": document.getElementById('e1891153261').value.trim(),
-                "entry.1774381118": document.getElementById('e1774381118').value.trim(),
-                "entry.270426395": document.getElementById('e270426395').value.trim()
+                "entry.702667613": document.getElementById('dateInput').value,    // 날짜 입력
+                "entry.1554958339": document.getElementById('idInput').value.trim(), // 학번 입력
+                "entry.1733007318": document.getElementById('nameInput').value.trim(),
+                "entry.1605454970": document.getElementById('goalInput').value.trim(),
+                "entry.572830936": document.getElementById('processInput').value.trim(),
+                "entry.1891153261": document.getElementById('resultInput').value.trim(),
+                "entry.1774381118": document.getElementById('insightInput').value.trim(),
+                "entry.270426395": document.getElementById('nextInput').value.trim()
             };
 
-            // 필수 입력 사항 체크 (학번, 이름)
-            if(!fields["entry.702667613"] || !fields["entry.1733007318"]) {
-                alert("학번과 이름은 반드시 입력해야 합니다.");
+            if(!fields["entry.1554958339"] || !fields["entry.1733007318"]) {
+                alert("학번과 이름은 꼭 입력해 주세요!");
                 return;
             }
 
-            // 버튼 비활성화 및 상태 표시
             btn.disabled = true;
             status.innerText = "데이터를 전송하고 있습니다...";
 
-            // 동적 폼 생성 및 전송
             const form = document.createElement('form');
             form.action = FORM_ACTION_URL;
             form.method = "POST";
-            form.target = "hidden_iframe"; // iframe으로 전송하여 현재 페이지 유지
+            form.target = "hidden_iframe";
 
             for (let key in fields) {
                 const input = document.createElement('input');
@@ -112,12 +119,10 @@
             document.body.appendChild(form);
             form.submit();
 
-            // 전송 완료 후 처리 (약 1.5초 후 초기화)
             setTimeout(() => {
                 alert("활동일지가 성공적으로 제출되었습니다!");
-                // 입력창 초기화
-                const inputs = document.querySelectorAll('input[type="text"], textarea');
-                inputs.forEach(input => input.value = "");
+                const textAreas = document.querySelectorAll('textarea');
+                textAreas.forEach(ta => ta.value = "");
                 
                 btn.disabled = false;
                 status.innerText = "";
