@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>내신 등급 통합 환산기</title>
+    <style>
+        body { font-family: 'Pretendard', sans-serif; background: #f8fafc; display: flex; justify-content: center; padding: 20px; }
+        .container { background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.1); width: 100%; max-width: 650px; }
+        h2 { text-align: center; color: #1e293b; margin-bottom: 5px; }
+        .ver-tag { display: block; text-align: center; color: #2563eb; font-weight: bold; font-size: 0.9rem; margin-bottom: 25px; }
+        
+        table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+        th { background: #f1f5f9; color: #475569; padding: 10px; font-size: 0.85rem; border-bottom: 2px solid #e2e8f0; }
+        td { padding: 8px; border-bottom: 1px solid #f1f5f9; text-align: center; }
+        .sub-name { font-weight: 600; color: #334155; text-align: left; padding-left: 10px; }
+        
+        input { width: 50px; padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px; text-align: center; font-size: 1rem; }
+        
+        .btn-calc { width: 100%; padding: 18px; background: #1e293b; color: white; border: none; border-radius: 12px; font-size: 1.1rem; font-weight: bold; cursor: pointer; }
+
+        #result-box { margin-top: 30px; padding: 25px; border-radius: 15px; display: none; background: #fff; border: 2px solid #1e293b; }
+        .result-grid { display: flex; gap: 15px; margin-top: 15px; }
+        .result-card { flex: 1; padding: 15px; border-radius: 10px; text-align: center; }
+        .card-label { font-size: 0.85rem; color: #64748b; margin-bottom: 5px; }
+        .card-val { font-size: 2.2rem; font-weight: 900; }
+        
+        .pct-box { margin-bottom: 15px; font-size: 1.1rem; font-weight: 700; color: #e11d48; text-align: center; }
+        .comparison-info { font-size: 0.8rem; color: #94a3b8; margin-top: 15px; line-height: 1.4; border-top: 1px dashed #eee; padding-top: 10px; }
+        .highlight { color: #2563eb; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>📊 내신 등급 통합 환산기</h2>
+    <span class="ver-tag">현재 고2(5등급제) → 기존 9등급제 비교</span>
+    
+    <table>
+        <thead>
+            <tr>
+                <th rowspan="2">과목명</th>
+                <th colspan="2">1학기</th>
+                <th colspan="2">2학기</th>
+            </tr>
+            <tr>
+                <th>단위</th>
+                <th>등급(1-5)</th>
+                <th>단위</th>
+                <th>등급(1-5)</th>
+            </tr>
+        </thead>
+        <tbody>
+            <script>
+                const subjects = ["국어", "수학", "영어", "한국사", "통합사회", "통합과학"];
+                subjects.forEach(s => {
+                    document.write(`
+                        <tr>
+                            <td class="sub-name">${s}</td>
+                            <td><input type="number" class="u1" value="4"></td>
+                            <td><input type="number" class="g1" placeholder="1-5"></td>
+                            <td><input type="number" class="u2" value="4"></td>
+                            <td><input type="number" class="g2" placeholder="1-5"></td>
+                        </tr>
+                    `);
+                });
+            </script>
+        </tbody>
+    </table>
+
+    <button class="btn-calc" onclick="calculate()">내 등급 환산 결과 보기</button>
+
+    <div id="result-box">
+        <div class="pct-box">예상 상위 약 <span id="pctOut">0</span>%</div>
+        
+        <div class="result-grid">
+            <div class="result-card" style="background: #eff6ff;">
+                <div class="card-label">현행 (5등급제)</div>
+                <div class="card-val" id="g5Out" style="color: #2563eb;">0.00</div>
+            </div>
+            <div class="result-card" style="background: #fff1f2;">
+                <div class="card-label">환산 (9등급제)</div>
+                <div class="card-val" id="g9Out" style="color: #e11d48;">0.00</div>
+            </div>
+        </div>
+        
+        <div class="comparison-info">
+            <p id="mainAnalysis"></p>
+            <p>* 5등급제 1.0등급은 최상위권 학생들을 보호하기 위해 9등급제 1.0등급으로 보정 산출되었습니다.</p>
+        </div>
+    </div>
+</div>
+
+<script>
+    function calculate() {
+        const u1 = document.querySelectorAll(".u1"), g1 = document.querySelectorAll(".g1");
+        const u2 = document.querySelectorAll(".u2"), g2 = document.querySelectorAll(".g2");
+        let totalS = 0, totalU = 0;
+
+        for (let i = 0; i < u1.length; i++) {
+            [{u:u1[i], g:g1[i]}, {u:u2[i], g:g2[i]}].forEach(p => {
+                const uv = parseFloat(p.u.value), gv = parseFloat(p.g.value);
+                if (!isNaN(uv) && !isNaN(gv)) {
+                    totalS += (uv * gv);
+                    totalU += uv;
+                }
+            });
+        }
+
+        if (totalU === 0) return alert("등급을 입력하세요.");
+
+        const avg5 = totalS / totalU;
+        
+        // --- [보정 로직 추가] ---
+        // 5등급제 1.0등급이 9등급제 1.0등급이 되도록 백분위 가중치 조정
+        let pct = 100;
+        if (avg5 <= 1.0) {
+            pct = 2.0; // 올 1등급인 경우 상위 2% 정도로 간주 (9등급제 1등급 안착)
+        } else if (avg5 < 2.0) {
+            // 1.0 ~ 2.0 구간: 백분위를 2% ~ 34% 사이로 매핑
+            pct = 2 + (avg5 - 1) * (34 - 2) / (2 - 1);
+        } else {
+            // 그 외 구간: 기존 5등급제 컷 활용 (34, 66, 90, 100)
+            const cut5 = [{g:2,p:34}, {g:3,p:66}, {g:4,p:90}, {g:5,p:100}];
+            for (let i = 0; i < cut5.length - 1; i++) {
+                if (avg5 <= cut5[i+1].g) {
+                    pct = cut5[i].p + (avg5 - cut5[i].g) * (cut5[i+1].p - cut5[i].p) / (cut5[i+1].g - cut5[i].g);
+                    break;
+                }
+            }
+        }
+
+        // 9등급제 역산 (보정된 백분위 기준)
+        const cut9 = [{g:1,p:4}, {g:2,p:11}, {g:3,p:23}, {g:4,p:40}, {g:5,p:60}, {g:6,p:77}, {g:7,p:89}, {g:8,p:96}, {g:9,p:100}];
+        let avg9 = 9;
+        if (pct <= 4) {
+            // 상위 4% 이내면 무조건 1등급대
+            avg9 = 1.0 + (pct / 4) * (1.1 - 1.0); 
+            if(avg5 === 1.0) avg9 = 1.00; // 올 1등급은 1.00으로 고정
+        } else {
+            for (let i = 0; i < cut9.length - 1; i++) {
+                if (pct <= cut9[i+1].p) {
+                    const p1 = cut9[i].p, p2 = cut9[i+1].p, g1 = cut9[i].g, g2 = cut9[i+1].g;
+                    avg9 = g1 + (pct - p1) / (p2 - p1) * (g2 - g1);
+                    break;
+                }
+            }
+        }
+
+        document.getElementById("result-box").style.display = "block";
+        document.getElementById("pctOut").innerText = pct.toFixed(2);
+        document.getElementById("g5Out").innerText = avg5.toFixed(2);
+        document.getElementById("g9Out").innerText = avg9.toFixed(2);
+        
+        const analysis = document.getElementById("mainAnalysis");
+        analysis.innerHTML = `분석 결과: 5등급제 <span class="highlight">${avg5.toFixed(1)}등급</span>은 기존 9등급제의 <span class="highlight">${avg9.toFixed(1)}등급</span> 수준의 실력입니다.`;
+
+        window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+    }
+</script>
+
+</body>
+</html>
