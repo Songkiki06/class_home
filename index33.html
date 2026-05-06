@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>물꼬방 통합 추천도서</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@400;600;700;800&display=swap');
+        
+        body {
+            font-family: 'Pretendard', sans-serif;
+            background-color: #f8f9fa;
+            color: #333;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .category-chip {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .category-chip.active {
+            background-color: #1e293b;
+            color: white;
+            border-color: #1e293b;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+        }
+
+        .info-card {
+            background-color: #f0f4ff;
+            border-radius: 1.5rem;
+        }
+
+        .book-card {
+            transition: all 0.3s ease;
+        }
+        
+        .book-card:hover {
+            transform: translateY(-4px);
+        }
+
+        .is-lit {
+            border-left: 4px solid #3b82f6;
+        }
+
+        .line-clamp-2 {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .line-clamp-3 {
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+    </style>
+</head>
+<body class="max-w-4xl mx-auto bg-white min-h-screen shadow-2xl overflow-x-hidden">
+
+    <!-- Header Section -->
+    <header class="p-6 md:p-10 pb-4 sticky top-0 bg-white/80 backdrop-blur-md z-30 border-b border-slate-100">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div class="flex items-center gap-4">
+                <div class="w-14 h-14 bg-blue-600 rounded-2xl flex items-center justify-center shadow-xl shadow-blue-100">
+                    <i class="fas fa-book-open text-white text-2xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-2xl font-extrabold text-slate-900 leading-tight tracking-tight">물꼬방 통합 추천도서</h1>
+                    <p class="text-xs text-blue-600 font-bold mt-1 tracking-wider uppercase">8대 핵심 분야 연계 도서관</p>
+                </div>
+            </div>
+
+            <!-- Search Bar -->
+            <div class="relative flex-1 max-w-md">
+                <span class="absolute inset-y-0 left-4 flex items-center text-slate-400">
+                    <i class="fas fa-search"></i>
+                </span>
+                <input type="text" 
+                       id="searchInput"
+                       oninput="filterBooks()"
+                       placeholder="도서명, 저자, 키워드 검색" 
+                       class="w-full py-3.5 pl-12 pr-4 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:bg-white transition-all shadow-sm">
+            </div>
+        </div>
+    </header>
+
+    <main class="p-6 md:p-10">
+        <!-- Info Announcement Card -->
+        <div class="info-card p-6 flex gap-5 items-start mb-12 shadow-sm border border-blue-50">
+            <div class="flex-shrink-0 w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-sm">
+                <i class="fas fa-info text-blue-500 text-lg"></i>
+            </div>
+            <div class="text-[13.5px] leading-relaxed text-slate-700">
+                <h2 class="font-bold text-slate-900 mb-2 text-base">카테고리 개편 및 통합 안내</h2>
+                <p>도서 탐색의 편의를 위해 전체 분야를 <span class="text-blue-600 font-bold underline underline-offset-4">8가지 핵심 과목</span>으로 압축했습니다.</p>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 mt-3 opacity-90">
+                    <p>• 기존 윤리 도서 → <span class="font-bold text-slate-900">[인권]</span> 통합</p>
+                    <p>• 평화·통일·환경 → <span class="font-bold text-slate-900">[사회철학]</span> 편입</p>
+                    <p>• 문학 장르 → <span class="font-bold text-slate-900">[국어]</span> 분야 공통 검색</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Category Grid Section -->
+        <section class="mb-10">
+            <div class="flex items-center gap-2 mb-5">
+                <div class="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
+                <h3 class="font-bold text-slate-800 text-sm uppercase tracking-widest">8대 지식 분야</h3>
+            </div>
+            <div class="flex flex-wrap gap-2.5" id="categoryContainer">
+                <button onclick="selectCategory('전체', this)" class="category-chip active px-5 py-2.5 rounded-full border border-slate-200 text-sm font-bold">전체 보기</button>
+                <button onclick="selectCategory('국어', this)" class="category-chip px-5 py-2.5 rounded-full border border-slate-200 bg-white text-sm font-bold text-slate-500 hover:border-blue-200">국어</button>
+                <button onclick="selectCategory('과학', this)" class="category-chip px-5 py-2.5 rounded-full border border-slate-200 bg-white text-sm font-bold text-slate-500 hover:border-blue-200">과학</button>
+                <button onclick="selectCategory('수학', this)" class="category-chip px-5 py-2.5 rounded-full border border-slate-200 bg-white text-sm font-bold text-slate-500 hover:border-blue-200">수학</button>
+                <button onclick="selectCategory('사회', this)" class="category-chip px-5 py-2.5 rounded-full border border-slate-200 bg-white text-sm font-bold text-slate-500 hover:border-blue-200">사회</button>
+                <button onclick="selectCategory('예술', this)" class="category-chip px-5 py-2.5 rounded-full border border-slate-200 bg-white text-sm font-bold text-slate-500 hover:border-blue-200">예술</button>
+                <button onclick="selectCategory('역사', this)" class="category-chip px-5 py-2.5 rounded-full border border-slate-200 bg-white text-sm font-bold text-slate-500 hover:border-blue-200">역사</button>
+                <button onclick="selectCategory('인권', this)" class="category-chip px-5 py-2.5 rounded-full border border-slate-200 bg-white text-sm font-bold text-slate-500 hover:border-blue-200">인권</button>
+                <button onclick="selectCategory('사회철학', this)" class="category-chip px-5 py-2.5 rounded-full border border-slate-200 bg-white text-sm font-bold text-slate-500 hover:border-blue-200">사회철학</button>
+            </div>
+        </section>
+
+        <!-- Stats -->
+        <div class="flex items-center justify-between mb-6 pb-2 border-b border-slate-100">
+            <h4 id="resultTitle" class="text-lg font-bold text-slate-800">모든 도서</h4>
+            <span class="text-xs font-bold text-slate-400 bg-slate-100 px-3 py-1 rounded-full">총 <span id="bookCount" class="text-blue-600">0</span>권</span>
+        </div>
+
+        <!-- Book Results Grid -->
+        <div id="bookGrid" class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <!-- Dynamic Content -->
+        </div>
+
+        <!-- No Results -->
+        <div id="noResults" class="hidden text-center py-20 bg-slate-50 rounded-3xl border-2 border-dashed border-slate-200">
+            <i class="fas fa-book-open text-slate-200 text-5xl mb-4"></i>
+            <p class="text-slate-500 font-medium">검색 결과에 맞는 도서가 없습니다.</p>
+        </div>
+    </main>
+
+    <footer class="p-10 text-center border-t border-slate-50">
+        <p class="text-xs font-bold text-slate-300 uppercase tracking-widest">High School Integrated Library</p>
+        <p class="text-[11px] text-slate-400 mt-2 font-medium">문해력과 사고력을 키우는 110권의 융합 지식 저장소</p>
+    </footer>
+
+    <script>
+        const initialBooks = [
+            // --- 복구된 기존 명저 ---
+            { id: 1, title: "데미안", author: "헤르만 헤세", categories: ["국어", "인권", "사회철학"], description: "알을 깨고 나오는 새처럼, 진정한 자아를 찾아가는 청춘의 고뇌를 그린 고전." },
+            { id: 2, title: "사피엔스", author: "유발 하라리", categories: ["역사", "사회", "과학"], description: "인류의 탄생부터 AI 시대까지의 역사를 거시적인 관점에서 분석한 명저." },
+            { id: 3, title: "코스모스", author: "칼 세이건", categories: ["과학", "사회철학"], description: "우주의 광활함과 인류의 존재를 과학적, 철학적으로 연결한 대중서." },
+            { id: 4, title: "정의란 무엇인가", author: "마이클 샌델", categories: ["사회", "사회철학", "인권"], description: "구체적인 사례를 통해 '정의'의 의미를 철학적으로 고찰하는 도서." },
+            { id: 5, title: "이기적 유전자", author: "리처드 도킨스", categories: ["과학", "사회철학"], description: "생물학적 진화의 주체가 유전자임을 주장하며 생명에 대한 패러다임을 제시함." },
+            { id: 6, title: "침묵의 봄", author: "레이첼 카슨", categories: ["과학", "사회철학"], description: "환경 문제의 심각성을 알리고 생태계 보호의 중요성을 일깨운 책." },
+            { id: 7, title: "코드 (CODE)", author: "찰스 페졸드", categories: ["과학", "수학"], description: "컴퓨터와 소프트웨어가 작동하는 기본 원리를 비전공자도 이해하기 쉽게 풀어냄." },
+            { id: 8, title: "특이점이 온다", author: "레이 커즈와일", categories: ["과학", "사회"], description: "인공지능과 기술 발전이 인류의 미래를 어떻게 바꿀 것인지 예측함." },
+            { id: 9, title: "1984", author: "조지 오웰", categories: ["국어", "사회", "인권"], description: "전체주의 사회의 위험성을 경고하며 개인의 자유를 일깨워주는 소설." },
+            { id: 10, title: "멋진 신세계", author: "올더스 헉슬리", categories: ["국어", "과학", "사회"], description: "과학 기술이 인간의 존엄성을 위협하는 미래를 풍자적으로 그린 소설." },
+            { id: 11, title: "경제학 콘서트", author: "팀 하포드", categories: ["사회", "수학"], description: "일상 속 경제 원리를 흥미로운 사례를 통해 명쾌하게 설명함." },
+            { id: 12, title: "넛지", author: "리처드 탈러", categories: ["사회", "인권"], description: "행동경제학 관점에서 사람들의 선택을 더 나은 방향으로 유도하는 힘." },
+            { id: 13, title: "서양 미술사", author: "E.H. 곰브리치", categories: ["예술", "역사"], description: "선사 시대부터 현대까지 미술의 흐름을 한 권으로 정리한 바이블." },
+            { id: 14, title: "나의 문화유산답사기", author: "유홍준", categories: ["예술", "역사"], description: "우리 국토의 역사적 가치를 해설과 함께 전해주는 인문 교양서." },
+            { id: 15, title: "부분과 전체", author: "베르너 하이젠베르크", categories: ["과학", "사회철학"], description: "양자역학의 창시자가 들려주는 학문적 여정과 철학적 대화 기록." },
+
+            // --- 과학 / 수학 ---
+            { id: 101, title: "미술관에 간 의학자", author: "박광혁", categories: ["과학", "예술"], description: "명화 속에 숨겨진 질병과 의학적 사실을 흥미롭게 풀어낸 융합서." },
+            { id: 102, title: "전체를 보는 방법", author: "존 H. 밀러", categories: ["과학", "사회"], description: "복잡계 과학의 관점에서 세상의 현상들을 이해하는 통찰력을 제공함." },
+            { id: 103, title: "모든 것의 기원", author: "데이비드 버코비치", categories: ["과학", "역사"], description: "우주, 지구, 생명, 문명의 시작을 단숨에 읽어 내려가는 거대사 프로젝트." },
+            { id: 104, title: "과학, 일시정지", author: "과학교사모임", categories: ["과학", "사회철학"], description: "과학 기술의 발전이 우리 사회에 던지는 윤리적 질문과 고민들을 다룸." },
+            { id: 105, title: "뇌를 바꾼 공학", author: "임창환", categories: ["과학"], description: "뇌과학과 뇌공학의 최전선에서 인간의 뇌와 기술의 상호작용을 탐구함." },
+            { id: 106, title: "수학비타민", author: "박경미", categories: ["수학"], description: "생활 주변에 숨어있는 수학적 원리를 발견하여 수학의 흥미를 일깨움." },
+            { id: 107, title: "새빨간 거짓말, 통계", author: "대럴 허프", categories: ["수학", "사회"], description: "통계가 진실을 왜곡하는 방법을 보여주며 비판적 사고의 중요성을 강조." },
+            { id: 108, title: "재밌어서 밤새읽는 수학 이야기", author: "사쿠라이 스스무", categories: ["수학"], description: "수학의 경이로움과 아름다움을 흥미진진한 에피소드로 풀어낸 대중서." },
+            { id: 109, title: "수학의 언어로 세상을 본다면", author: "오구리 히로시", categories: ["수학", "과학"], description: "물리학자인 저자가 딸에게 보내는 편지 형식으로 수학적 사고를 전함." },
+            { id: 110, title: "미적분으로 바라본 하루", author: "오스카 페르난데스", categories: ["수학", "과학"], description: "아침부터 밤까지 일상의 모든 순간에 미적분이 어떻게 작동하는지 설명함." },
+            { id: 111, title: "수학 콘서트", author: "박경미", categories: ["수학", "예술"], description: "음악, 미술, 건축 등에 숨겨진 수학적 원리를 재미있게 콘서트처럼 진행함." },
+            { id: 112, title: "수학 귀신", author: "한스 마그누스 엔첸스베르거", categories: ["수학", "국어"], description: "수학을 싫어하는 소년이 수학 귀신을 만나 수의 매력에 빠지는 소설." },
+            { id: 113, title: "세상의 모든 공식", author: "존 보일", categories: ["수학", "과학"], description: "세상을 바꾼 52개의 위대한 수학 공식을 알기 쉽게 설명한 교양서." },
+            { id: 114, title: "페르마의 마지막 정리", author: "사이먼 싱", categories: ["수학", "역사"], description: "수학 역사상 가장 유명한 난제를 푸는 과정에 얽힌 천재들의 이야기." },
+            { id: 115, title: "통계의 미학", author: "최제호", categories: ["수학", "사회"], description: "정보의 홍수 속에서 숫자 이면에 숨겨진 진실을 읽어내는 통계적 안목." },
+
+            // --- 예술 / 역사 ---
+            { id: 201, title: "낯선 곳에서 나를 만나다", author: "한국문화인류학회", categories: ["사회", "인권", "예술"], description: "타 문화를 탐구하며 인간에 대한 이해의 폭을 넓히는 문화인류학서." },
+            { id: 202, title: "그림소담", author: "탁현규", categories: ["예술", "역사"], description: "우리 옛 그림 속에 담긴 사연과 아름다움을 따뜻한 시선으로 소개함." },
+            { id: 203, title: "중고생을 위한 미술 강의", author: "김병종", categories: ["예술"], description: "청소년들의 눈높이에 맞춘 쉽고 깊이 있는 세계 미술사 강의." },
+            { id: 204, title: "나의 서양음악 순례", author: "서경식", categories: ["예술", "국어"], description: "저자의 삶과 서양 고전 음악이 교차하는 지점을 그려낸 음악 에세이." },
+            { id: 205, title: "사진과 그림으로 보는 프랑스사", author: "콜린 존스", categories: ["역사"], description: "프랑스의 역사를 시각적 자료와 함께 입체적으로 분석한 책." },
+            { id: 206, title: "사기", author: "사마천", categories: ["역사", "사회철학"], description: "인간사의 다양한 드라마가 담긴 최고의 역사서이자 리더십의 교본." },
+            { id: 207, title: "방구석 미술관", author: "조원재", categories: ["예술"], description: "거장들의 인간적인 면모와 숨겨진 이야기를 통해 미술을 친근하게 접하게 함." },
+            { id: 208, title: "난생 처음 한번 공부하는 미술 이야기", author: "양정무", categories: ["예술", "역사"], description: "미술 작품 속에 담긴 당대의 사회, 문화, 역사를 흥미롭게 엮어낸 책." },
+            { id: 209, title: "건축, 음악처럼 듣고 미술처럼 보다", author: "서현", categories: ["예술"], description: "건축물을 읽는 법을 인문학적, 미학적 관점에서 쉽게 설명한 도서." },
+            { id: 210, title: "미학 오디세이", author: "진중권", categories: ["예술", "사회철학"], description: "에셔의 그림과 마그리트의 작품 등을 통해 미학의 세계로 안내하는 입문서." },
+
+            // --- 국어 (소설/에세이) / 문학 ---
+            { id: 301, title: "시를 잊은 그대에게", author: "정재찬", categories: ["국어", "예술"], description: "공대생에게 들려주는 시 강의. 메마른 일상에 감성을 불어넣는 에세이." },
+            { id: 302, title: "한국어가 사라진다면", author: "시정곤 외", categories: ["국어", "사회"], description: "언어 다양성의 중요성과 우리말의 소중함을 일깨워주는 탐구서." },
+            { id: 303, title: "한글에 대해 알아야 할 모든 것", author: "최경봉 외", categories: ["국어", "역사"], description: "한글의 창제 원리부터 과학적 우수성, 그리고 역사적 과정을 집대성함." },
+            { id: 304, title: "개인주의자 선언", author: "문유석", categories: ["국어", "사회", "인권"], description: "집단주의를 비판하며 건강한 개인주의가 세상을 어떻게 바꾸는지 논한 에세이." },
+            { id: 305, title: "오빠를 위한 최소한의 맞춤법", author: "이주윤", categories: ["국어"], description: "자주 틀리는 맞춤법을 유머러스한 상황과 함께 쉽고 명확하게 설명함." },
+            { id: 306, title: "열일곱 살의 인생론", author: "안광복", categories: ["국어", "사회철학"], description: "청소년들이 품는 인생의 질문에 대해 철학적 해답을 찾아가는 에세이." },
+            { id: 307, title: "Holes", author: "Louis Sachar", categories: ["국어", "인권"], description: "원서 읽기의 재미를 주며, 청소년의 성장을 다룬 영미권 필독 소설." },
+            { id: 308, title: "위대한 개츠비", author: "F. Scott Fitzgerald", categories: ["국어", "사회"], description: "아메리칸 드림의 허상과 자본주의 사회의 그림자를 그린 현대 문학." },
+            { id: 309, title: "소년이 온다", author: "한강", categories: ["국어", "역사", "인권"], description: "5.18 광주 민주화 운동 당시 희생된 사람들의 아픔을 시적으로 승화시킨 소설." },
+            { id: 310, title: "알로하, 나의 엄마들", author: "이금이", categories: ["국어", "역사", "인권"], description: "하와이로 이주한 '사진 신부' 세 여인의 연대와 삶을 그린 역사 소설." },
+            { id: 311, title: "오월의 달리기", author: "김해원", categories: ["국어", "역사"], description: "광주 항쟁을 배경으로 역사적 비극 속 아이들의 삶을 그린 청소년 소설." },
+            { id: 312, title: "벌레들", author: "이순원 외", categories: ["국어", "역사"], description: "동학농민운동부터 광화문 촛불까지 우리 역사의 주요 순간을 모티프로 한 소설집." },
+            { id: 313, title: "류명성 통일빵집", author: "박경희", categories: ["국어", "사회철학"], description: "탈북 소년의 애환과 남북한 청소년들이 소통해 나가는 과정을 그린 소설." },
+            { id: 314, title: "마션", author: "앤디 위어", categories: ["국어", "과학"], description: "화성에 고립된 우주비행사의 생존기를 과학적 지식으로 풀어낸 하드 SF 소설." },
+            { id: 315, title: "혼자 있기 좋은 방", author: "우지현", categories: ["국어", "예술"], description: "방과 관련된 명화를 감정과 연결 지어 소개하는 따뜻한 미술 에세이." },
+            { id: 316, title: "잎속의 검은 잎", author: "기형도", categories: ["국어"], description: "고독과 우울의 세계를 날카롭고 아름다운 언어로 표현한 현대 명시집." },
+            { id: 317, title: "나는 오래된 거리처럼 너를 사랑하고", author: "진은영", categories: ["국어", "사회"], description: "개인적인 사랑의 언어와 사회적 연대의 목소리를 교차시킨 시집." },
+            { id: 318, title: "비숲", author: "김산하", categories: ["국어", "과학", "사회철학"], description: "야생영장류학자가 인도네시아 밀림에서 원숭이를 관찰하며 쓴 자연 에세이." },
+            { id: 319, title: "당신이라는 안정제", author: "김동영", categories: ["국어", "사회", "인권"], description: "우울증 환자와 의사가 7년간 주고받은 대화를 기록한 심리 치유 에세이." },
+            { id: 320, title: "진짜 아픈 사람 맞습니다", author: "최세진", categories: ["국어", "인권"], description: "교도소 진료실에서 겪은 수용자들의 생생한 이야기를 담백하게 푼 에세이." },
+
+            // --- 사회 (경제, 언론, 노동) ---
+            { id: 401, title: "조선의 부부에게 사랑법을 묻다", author: "정창권", categories: ["사회", "역사", "인권"], description: "조선 시대 부부들의 편지를 통해 당시의 삶의 지혜와 사회상을 살펴봄." },
+            { id: 402, title: "김치도 꽁치도 아닌 정치", author: "임정은", categories: ["사회"], description: "청소년들이 정치를 막연하게 느끼지 않도록 일상 속 정치의 의미를 풀이함." },
+            { id: 403, title: "팬티 바르게 개는 법", author: "미나미노 다다하루", categories: ["사회", "국어"], description: "가정 교과의 관점에서 자립적인 삶과 소소한 일상의 기술이 갖는 가치." },
+            { id: 404, title: "백설공주는 왜 자꾸 문을 열어줄까", author: "사회", categories: ["사회", "인권", "국어"], description: "동화 속 이야기를 통해 사회의 고정관념과 차별을 비판적으로 바라봄." },
+            { id: 405, title: "공범들의 도시", author: "표창원", categories: ["사회"], description: "한국의 범죄 현상과 수사 체계를 프로파일러의 관점에서 예리하게 분석." },
+            { id: 406, title: "팩트체크", author: "JTBC 보도국", categories: ["사회"], description: "정보의 홍수 속에서 사실과 거짓을 가려내는 미디어 리터러시 입문서." },
+            { id: 407, title: "나쁜 뉴스의 나라", author: "조윤호", categories: ["사회"], description: "왜곡 보도의 구조를 파헤치고 언론을 비판적으로 수용하는 방법을 제시." },
+            { id: 408, title: "권력과 언론", author: "박성제", categories: ["사회"], description: "주요 언론인들의 인터뷰를 통해 한국 미디어 권력의 민낯을 생생히 보여줌." },
+            { id: 409, title: "유튜브에 빠진 너에게", author: "구본권", categories: ["사회"], description: "Z세대를 위한 디지털 미디어 환경의 이해와 올바른 활용법." },
+            { id: 410, title: "10대와 통하는 땅과 집 이야기", author: "손낙구", categories: ["사회"], description: "한국 사회의 부동산 문제와 불평등 구조를 청소년 눈높이에서 해설." },
+            { id: 411, title: "자본주의 할래? 사회주의 할래?", author: "임승수", categories: ["사회", "사회철학"], description: "두 경제 체제의 원리와 장단점을 토론 형식으로 알기 쉽게 풀어냄." },
+            { id: 412, title: "99%를 위한 경제학", author: "김재수", categories: ["사회", "수학"], description: "우리 주변의 사건과 경제학의 기초 원리를 연관 지어 균형 잡힌 시선을 기름." },
+            { id: 413, title: "돈이 먼저 움직인다", author: "제현주", categories: ["사회"], description: "투자로 버는 돈의 흐름을 통해 현대 자본주의의 작동 방식을 설명함." },
+            { id: 414, title: "까대기", author: "이종철", categories: ["사회", "국어"], description: "택배 상하차 알바 경험을 바탕으로 혹독한 노동 현장을 그려낸 만화." },
+            { id: 415, title: "중간착취의 지옥도", author: "남보라 외", categories: ["사회", "인권"], description: "하청 노동과 파견 등 한국 사회의 구조적 착취 시스템을 심층 취재함." },
+            { id: 416, title: "고통에 이름을 붙이는 사람들", author: "노동환경건강연구소", categories: ["사회", "인권"], description: "일터에서 벌어지는 산업 재해와 노동자들의 아픔을 기록한 르포." },
+            { id: 417, title: "이주노동자를 묻는 십대에게", author: "이란주", categories: ["사회", "인권"], description: "이주노동자들의 삶과 차별적 제도를 살펴보며 상생의 길을 모색함." },
+
+            // --- 인권 ---
+            { id: 501, title: "물에 빠진 아이 구하기", author: "피터 싱어", categories: ["인권", "사회철학"], description: "윤리적 기부와 소비를 통해 지구촌의 빈곤을 어떻게 해결할지 묻는 윤리학." },
+            { id: 502, title: "장애학의 도전", author: "김도현", categories: ["인권", "사회"], description: "장애에 대한 통념을 부수고 정상성의 이데올로기에 질문을 던지는 책." },
+            { id: 503, title: "병원장사", author: "김기태", categories: ["인권", "사회"], description: "과잉 진료와 의료의 상업화로 인해 침해받는 환자의 권리를 고발함." },
+            { id: 504, title: "능력주의 20 vs 80의 사회", author: "리처드 리브스", categories: ["인권", "사회"], description: "중상류층의 세습과 기회의 불평등을 분석하며 계층 이동의 절망을 지적." },
+            { id: 505, title: "헤어지자고 했을 뿐입니다", author: "이주연 외", categories: ["인권", "사회"], description: "교제 살인과 데이트 폭력 사건을 분석하여 젠더 폭력의 심각성을 알림." },
+            { id: 506, title: "선량한 차별주의자", author: "김지혜", categories: ["인권", "사회"], description: "무심코 뱉는 말 속에 숨겨진 차별을 지적하며 인권 감수성을 키워줌." },
+            { id: 507, title: "대한민국 최저로 살아가기", author: "참여연대", categories: ["인권", "사회"], description: "최저생계비로 한 달을 살아본 사람들의 생생한 기록과 복지 정책의 허점." },
+            { id: 508, title: "싸울 때마다 투명해진다", author: "은유", categories: ["인권", "국어"], description: "차별받는 소수자들의 목소리를 투명하게 담아낸 빛나는 산문집." },
+            { id: 509, title: "학교 가는 길", author: "김정인 외", categories: ["인권", "사회"], description: "발달장애인 학교 설립을 위해 세상의 편견과 맞서 싸운 어머니들의 기록." },
+            { id: 510, title: "무지개 성 상담소", author: "동성애자인권연대", categories: ["인권", "사회"], description: "성 소수자 청소년들이 겪는 정체성의 고민과 차별 문제를 다룬 상담 지침서." },
+            { id: 511, title: "나도 몰라서 공부하는 페미니즘", author: "키드", categories: ["인권", "국어"], description: "만화로 쉽게 설명하는 성평등 입문서. 일상 속 차별을 쉽게 이해할 수 있음." },
+            { id: 512, title: "난장이가 쏘아올린 작은 공", author: "조세희", categories: ["인권", "사회", "국어"], description: "1970년대 도시 빈민과 노동자의 인권 유린을 고발한 한국 문학의 상징." },
+            { id: 513, title: "숨은 노동 찾기", author: "신정임", categories: ["인권", "사회", "국어"], description: "급식 조리원 등 투명인간 취급받는 비정규직 노동자들의 목소리를 담은 에세이." },
+
+            // --- 사회철학 ---
+            { id: 601, title: "10대와 통하는 기후 정의 이야기", author: "권희중", categories: ["사회철학", "사회"], description: "기후 위기가 유발하는 불평등 구조를 극복하려는 윤리적 관점 제시." },
+            { id: 602, title: "최종경고: 6도의 멸종", author: "마크 라이너스", categories: ["사회철학", "과학"], description: "지구 온도가 1도 상승할 때마다 벌어질 파국을 경고하는 환경 생태학 도서." },
+            { id: 603, title: "기후 변화 쫌 아는 10대", author: "전진용", categories: ["사회철학", "과학"], description: "기후 변화의 원인과 현상을 파악하고 대응 방안을 논리적으로 탐구함." },
+            { id: 604, title: "최원형의 청소년 소비 특강", author: "최원형", categories: ["사회철학", "사회"], description: "우리의 일상적 소비가 자연 생태계와 타인에게 미치는 영향을 통찰함." },
+            { id: 605, title: "선을 넘어 생각한다", author: "박한식", categories: ["사회철학"], description: "북한과 남북 관계에 덧씌워진 편견을 깨고 평화 구축의 방안을 모색." },
+            { id: 606, title: "고난과 웃음의 나라", author: "정병호", categories: ["사회철학", "사회"], description: "문화인류학자가 북한 사회의 일상을 있는 그대로 바라본 생생한 르포." },
+            { id: 607, title: "세계는 왜 싸우는가", author: "김영미", categories: ["사회철학", "역사"], description: "전 세계 분쟁 지역의 역사적 배경과 평화를 저해하는 요인을 설명함." },
+            { id: 608, title: "10대와 통하는 탈핵 이야기", author: "최열 외", categories: ["사회철학", "과학"], description: "원자력 에너지의 위험성과 환경 단체의 주장을 균형 있게 소개함." },
+            { id: 609, title: "철학자와 하녀", author: "고병권", categories: ["사회철학", "인권"], description: "사회적 약자를 바라보는 따뜻한 시선이 담긴 훌륭한 철학 입문서." },
+            { id: 610, title: "소크라테스 익스프레스", author: "에릭 와이너", categories: ["사회철학"], description: "위대한 철학자들의 사상을 유쾌하게 풀어내어 인생의 답을 찾아감." },
+            { id: 611, title: "나의 비거니즘 만화", author: "보선", categories: ["사회철학", "국어"], description: "동물권과 공장식 축산업의 문제를 담담한 에세이 만화로 그려내 성찰을 유도." }
+        ];
+
+        let currentCategory = '전체';
+
+        function selectCategory(category, element) {
+            currentCategory = category;
+            const chips = document.querySelectorAll('.category-chip');
+            chips.forEach(chip => chip.classList.remove('active'));
+            element.classList.add('active');
+            document.getElementById('resultTitle').textContent = category === '전체' ? '모든 도서' : `[${category}] 분야`;
+            filterBooks();
+        }
+
+        function filterBooks() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const grid = document.getElementById('bookGrid');
+            const noResults = document.getElementById('noResults');
+            
+            const filtered = initialBooks.filter(book => {
+                const matchesCategory = currentCategory === '전체' || book.categories.includes(currentCategory);
+                const matchesSearch = book.title.toLowerCase().includes(searchTerm) || 
+                                    book.author.toLowerCase().includes(searchTerm) ||
+                                    book.description.toLowerCase().includes(searchTerm);
+                return matchesCategory && matchesSearch;
+            });
+
+            document.getElementById('bookCount').textContent = filtered.length;
+            grid.innerHTML = '';
+
+            if (filtered.length === 0) {
+                noResults.classList.remove('hidden');
+                return;
+            } else {
+                noResults.classList.add('hidden');
+            }
+
+            filtered.forEach(book => {
+                const isLit = book.categories.includes("국어");
+                const card = document.createElement('div');
+                card.className = `book-card p-6 bg-white border border-slate-100 rounded-2xl shadow-sm hover:shadow-md flex flex-col ${isLit ? 'is-lit' : ''}`;
+                
+                const categoriesHtml = book.categories.map(cat => 
+                    `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-50 text-slate-400 border border-slate-100 mr-1">${cat}</span>`
+                ).join('');
+
+                card.innerHTML = `
+                    <div class="flex flex-wrap gap-1 mb-3">${categoriesHtml}</div>
+                    <h5 class="text-base font-bold text-slate-900 mb-1 line-clamp-2">${book.title}</h5>
+                    <p class="text-xs text-slate-500 font-medium mb-4"><i class="fas fa-user-edit mr-1.5 opacity-50"></i>${book.author}</p>
+                    <div class="mt-auto pt-3 border-t border-slate-50">
+                        <p class="text-[13px] text-slate-600 leading-relaxed line-clamp-3 font-medium">${book.description}</p>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        window.onload = filterBooks;
+    </script>
+</body>
+</html>
