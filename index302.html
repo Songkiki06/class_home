@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>진로활동 - [진로와 사회 이슈] 연계 독서 활동 보고서</title>
+    <style>
+        :root {
+            --primary-color: #2b4c7e;
+            --secondary-color: #4a6fa5;
+            --accent-color: #e8f1f5;
+            --text-color: #2c3e50;
+            --border-color: #dcdde1;
+            --bg-color: #f8f9fa;
+            --white: #ffffff;
+            --success-color: #2ecc71;
+            --highlight-bg: #fffde7;
+            --highlight-border: #f1c40f;
+            --notice-bg: #f0f4f8;
+            --notice-border: #2b4c7e;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: var(--white);
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 3px double var(--primary-color);
+            padding-bottom: 20px;
+        }
+
+        h1 {
+            font-size: 24px;
+            color: var(--primary-color);
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        .subtitle {
+            font-size: 18px;
+            margin-top: 5px;
+            font-weight: 600;
+            color: var(--secondary-color);
+        }
+
+        .main-notice {
+            background-color: var(--notice-bg);
+            border-left: 5px solid var(--notice-border);
+            padding: 22px;
+            border-radius: 6px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 8px rgba(43, 76, 126, 0.05);
+        }
+
+        .notice-title {
+            font-size: 15px;
+            font-weight: bold;
+            color: var(--primary-color);
+            margin-bottom: 12px;
+        }
+
+        .notice-list {
+            list-style: none;
+            padding-left: 5px;
+        }
+
+        .notice-list li {
+            font-size: 13.5px;
+            margin-bottom: 10px;
+            color: #34495e;
+            position: relative;
+            padding-left: 15px;
+        }
+
+        .notice-list li::before {
+            content: "•";
+            position: absolute;
+            left: 0;
+            color: var(--secondary-color);
+            font-weight: bold;
+        }
+
+        .notice-list strong {
+            color: #e74c3c;
+        }
+
+        .storyline-flow {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--white);
+            padding: 10px 15px;
+            border-radius: 4px;
+            border: 1px solid #d2dae2;
+            margin-top: 12px;
+            text-align: center;
+        }
+
+        .flow-step {
+            font-size: 12px;
+            font-weight: bold;
+            color: #57606f;
+            background: #f1f2f6;
+            padding: 6px 12px;
+            border-radius: 20px;
+            flex: 1;
+        }
+
+        .flow-arrow {
+            font-size: 14px;
+            color: var(--secondary-color);
+            margin: 0 8px;
+            font-weight: bold;
+        }
+
+        .section-title {
+            font-size: 15px;
+            background-color: var(--primary-color);
+            color: var(--white);
+            padding: 8px 15px;
+            border-radius: 4px;
+            margin-top: 30px;
+            margin-bottom: 15px;
+            font-weight: bold;
+            display: inline-block;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            background: #f1f2f6;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 25px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        label {
+            font-weight: bold;
+            margin-bottom: 6px;
+            font-size: 13px;
+            color: #333;
+        }
+
+        input[type="text"], textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        input[type="text"]:focus, textarea:focus {
+            border-color: var(--secondary-color);
+            outline: none;
+            box-shadow: 0 0 5px rgba(74, 111, 165, 0.3);
+        }
+
+        .type-container {
+            background: #fafafa;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .type-description-title {
+            font-size: 13px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: var(--primary-color);
+        }
+
+        .type-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+
+        .type-item {
+            display: flex;
+            align-items: flex-start;
+            background: var(--white);
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .type-item:hover {
+            background: var(--accent-color);
+        }
+
+        .type-item input {
+            margin-top: 4px;
+            margin-right: 10px;
+        }
+
+        .type-text {
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .guide-box {
+            background-color: var(--highlight-bg);
+            border-left: 4px solid var(--highlight-border);
+            padding: 15px;
+            margin: 15px 0 25px 0;
+            border-radius: 0 4px 4px 0;
+            display: none;
+        }
+
+        .guide-box h4 {
+            font-size: 14px;
+            color: #b78103;
+            margin-bottom: 6px;
+            font-weight: bold;
+        }
+
+        .guide-box p {
+            font-size: 13px;
+            color: #555;
+            white-space: pre-line;
+        }
+
+        .content-box {
+            border: 1px solid var(--border-color);
+            padding: 20px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            background-color: var(--white);
+        }
+
+        .instruction {
+            font-size: 12.5px;
+            color: #7f8c8d;
+            margin-bottom: 12px;
+            font-style: italic;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .large-textarea {
+            min-height: 180px;
+        }
+
+        .file-upload-section {
+            background-color: #f1f2f6;
+            border: 2px dashed var(--secondary-color);
+            padding: 20px;
+            border-radius: 6px;
+            text-align: center;
+            margin-top: 15px;
+        }
+
+        .file-upload-section input[type="file"] {
+            display: none;
+        }
+
+        .file-label {
+            display: inline-block;
+            background-color: var(--secondary-color);
+            color: var(--white);
+            padding: 8px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: bold;
+            transition: background 0.2s;
+        }
+
+        .file-label:hover {
+            background-color: var(--primary-color);
+        }
+
+        .file-name-display {
+            margin-top: 8px;
+            font-size: 13px;
+            color: #555;
+        }
+
+        .btn-group {
+            text-align: center;
+            margin-top: 40px;
+        }
+
+        .submit-btn {
+            background-color: var(--primary-color);
+            color: var(--white);
+            border: none;
+            padding: 15px 40px;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.2s;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .submit-btn:hover {
+            background-color: #1a3052;
+        }
+
+        .submit-btn:disabled {
+            background-color: #a5b1c2;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>진로활동</h1>
+        <div class="subtitle">[진로와 사회 이슈] 연계 독서 활동 보고서</div>
+    </header>
+
+    <div class="main-notice">
+        <div class="notice-title">💡 학생 안내: 보고서 작성 시 핵심 서술 포인트</div>
+        <ul class="notice-list">
+            <li><strong>진로역량과 시사 안목의 융합:</strong> 단순히 책 내용을 요약하는 독후감 수준을 넘어, 책에서 다룬 본질적인 갈등 상황이 현재 대한민국 혹은 글로벌 사회에서 어떻게 실재하는지 파악하는 역량을 평가합니다.</li>
+            <li><strong>6개월 이내 시의성 확보:</strong> <strong style="color: #e74c3c;">최근 6개월 이내의 뉴스, 시사 평론, 통계 자료 등</strong>을 연결 고리로 삼아 '지금 왜 이 문제가 사회적으로 중요한지' 구체적인 근거를 제시해야 합니다.</li>
+            <li><strong>주도적 스토리라인의 완성:</strong> 아래 흐름도에 따라 논리적 연결성이 돋보이도록 공통 서술 항목을 작성해 주세요.</li>
+        </ul>
+        <div class="storyline-flow">
+            <div class="flow-step">1단계: 책 속의 문제 인식</div>
+            <div class="flow-arrow">➔</div>
+            <div class="flow-step" style="background-color: #ffebd2; color: #d35400;">2단계: 최근 6개월간의 사회적 쟁점/이슈 연결</div>
+            <div class="flow-arrow">➔</div>
+            <div class="flow-step">3단계: 나의 희망 진로에서의 해결 필요성</div>
+        </div>
+    </div>
+
+    <form id="reportForm" onsubmit="handleSubmit(event)">
+        <div class="info-grid">
+            <div class="form-group">
+                <label for="studentId">학번</label>
+                <input type="text" id="studentId" placeholder="예: 30101" required>
+            </div>
+            <div class="form-group">
+                <label for="studentName">이름</label>
+                <input type="text" id="studentName" required>
+            </div>
+            <div class="form-group">
+                <label for="bookTitle">도서명(저자)</label>
+                <input type="text" id="bookTitle" placeholder="예: 생명윤리란 무엇인가(홍길동)" required>
+            </div>
+            <div class="form-group">
+                <label for="careerPath">희망 진로</label>
+                <input type="text" id="careerPath" placeholder="예: 인공지능 보건 의료 전문가" required>
+            </div>
+        </div>
+
+        <div class="section-title">◈ 활동 유형 선택 (한 가지 유형 또는 유형 조합 모두 가능)</div>
+        <div class="type-container">
+            <div class="type-description-title">※ 작성할 유형을 체크하세요. (선택 시 하단에 맞춤형 가이드가 실시간 표시됩니다)</div>
+            <div class="type-grid">
+                <div class="type-item"><input type="checkbox" id="type1" value="1. 융합 솔루션 제안" onchange="updateGuide()"><div class="type-text">1. 사회 이슈 해결을 위한 '융합 솔루션 제안'</div></div>
+                <div class="type-item"><input type="checkbox" id="type2" value="2. 뉴스 큐레이션 및 비판적 분석" onchange="updateGuide()"><div class="type-text">2. '미래 키워드' 뉴스 큐레이션 및 비판적 분석</div></div>
+                <div class="type-item"><input type="checkbox" id="type3" value="3. 꼬리물기 심화 탐구" onchange="updateGuide()"><div class="type-text">3. 지식의 확장을 위한 '꼬리물기 심화 탐구'</div></div>
+                <div class="type-item"><input type="checkbox" id="type4" value="4. 전공 윤리와 사회적 책임 모델링" onchange="updateGuide()"><div class="type-text">4. 전공 윤리와 사회적 책임 모델링</div></div>
+                <div class="type-item"><input type="checkbox" id="type5" value="5. 전공 관련 서평 기고" onchange="updateGuide()"><div class="type-text">5. 사회적 가치를 담은 '전공 관련 서평' 기고</div></div>
+                <div class="type-item"><input type="checkbox" id="type6" value="6. 기타" onchange="updateGuide()"><div class="type-text">6. 기타(자신만의 창의적 활동 설계)</div></div>
+            </div>
+        </div>
+
+        <div id="dynamicGuide" class="guide-box">
+            <h4>[선택 유형별 작성 가이드 안내]</h4>
+            <p id="guideText"></p>
+        </div>
+
+        <div class="section-title">1. [공통] 문제 인식 및 진로 연계</div>
+        <div class="content-box">
+            <div class="form-group" style="margin-bottom: 20px;">
+                <label for="commonIssue">★ 책을 통해 발견한 주요 사회적 문제(또는 갈등 상황)를 서술하고, 이와 관련된 <span style="color: #e74c3c; font-weight: bold;">최근 6개월 이내의 실제 사회적 이슈(뉴스, 사건, 통계 등)</span>를 연결하여 구체적으로 풀어내세요.</label>
+                <div class="instruction">※ 작성 팁: 책의 본질적 갈등이 최근 사회에서 어떻게 나타나는지 시사 이슈를 엮어 서술하세요.</div>
+                <textarea id="commonIssue" required class="large-textarea" placeholder="[작성 예시]&#10;- 책 속의 문제: 과학 기술에 따른 인간 소외 현상&#10;- 6개월 이내 이슈 연결: 최근(202X년 X월) 발생한 OO 관련 뉴스에 따르면..."></textarea>
+            </div>
+            <div class="form-group">
+                <label for="commonLink">★ 위 사회적 문제 및 최신 이슈가 나의 희망 진로(전공)와 어떻게 연관되며, 왜 관심을 가져야 하는지 서술하세요.</label>
+                <textarea id="commonLink" required placeholder="내용 작성..."></textarea>
+            </div>
+        </div>
+
+        <div class="section-title">2. [선택] 심층 탐구 활동 보고서 파일 제출</div>
+        <div class="content-box">
+            <div class="instruction">※ 선택한 유형의 세부 결과물 파일(HWP, DOCX, PDF)을 첨부해 주세요. 파일은 구글 드라이브에 자동으로 업로드됩니다.</div>
+            <div class="file-upload-section">
+                <label for="reportFile" class="file-label">보고서 파일 선택 (최대 20MB)</label>
+                <input type="file" id="reportFile" accept=".hwp, .hwpx, .docx, .doc, .pdf" onchange="displayFileName()" required>
+                <div id="fileNameDisplay" class="file-name-display">선택된 파일 없음</div>
+            </div>
+        </div>
+
+        <div class="section-title">3. [공통] 융합적 소양 및 성찰</div>
+        <div class="content-box">
+            <div class="form-group">
+                <label for="reflectionCore">● 이 활동을 통해 새롭게 깨달은 점 또는 성장한 나의 융합적 역량</label>
+                <textarea id="reflectionCore" class="large-textarea" required placeholder="내용 작성..."></textarea>
+            </div>
+        </div>
+
+        <div class="btn-group">
+            <button type="submit" id="submitBtn" class="submit-btn">보고서 최종 제출하기</button>
+        </div>
+    </form>
+</div>
+
+<script>
+    // 💡 전달해주신 구글 웹 앱 URL 주소가 성공적으로 연동되었습니다.
+    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxs-CbFSDVBMYdkN9-iVjAN6Z2DtdtUiyGYBcIS2JsXvMnyIKqX6NenfvcWKsuOl0TA/exec";
+
+    const guides = {
+        '1': "• 유형 1: 전공 핵심 원리를 적용하여 문제를 해결할 아이디어, 구체적 해결 메커니즘을 담은 '1인 정책 제안서' 또는 '기술 보고서' 작성",
+        '2': "• 유형 2: 관련 최신 뉴스/통계 자료(2개 이상) 출처 및 요약, '저자의 관점'과 '현재 기사 속 현실' 비교, 내 진로 분야에 미칠 미래 변화 예측",
+        '3': "• 유형 3: 책을 읽으며 생긴 '심화 키워드'나 의문점, 추가 탐구한 자료 내용 요약, 지식 확장 지도 작성",
+        '4': "• 유형 4: 해당 분야 기술적/학문적 성취 이면의 어두운 면 분석, 전문가로서 최우선할 가치를 담은 '나만의 직업 윤리 선언서' 설계",
+        '5': "• 유형 5: 특정 사회적 갈등을 전공자의 시선으로 재정의, 해당 갈등에 대한 자신의 견해와 해결 방향을 담은 '전문 칼럼' 작성",
+        '6': "• 유형 6: 책의 주제와 자신의 전공 역량을 연결할 수 있는 '독창적인 탐구 방식'을 스스로 기획하고 수행함"
+    };
+
+    function updateGuide() {
+        const guideBox = document.getElementById('dynamicGuide');
+        const guideText = document.getElementById('guideText');
+        let activeGuides = [];
+        for (let i = 1; i <= 6; i++) {
+            if (document.getElementById('type' + i).checked) activeGuides.push(guides[i]);
+        }
+        if (activeGuides.length > 0) {
+            guideText.innerHTML = activeGuides.join('<br><br>');
+            guideBox.style.display = 'block';
+        } else {
+            guideBox.style.display = 'none';
+        }
+    }
+
+    function displayFileName() {
+        const fileInput = document.getElementById('reportFile');
+        const display = document.getElementById('fileNameDisplay');
+        if (fileInput.files.length > 0) {
+            display.textContent = "📎 첨부 완료: " + fileInput.files[0].name;
+            display.style.color = "#2b4c7e";
+            display.style.fontWeight = "bold";
+        } else {
+            display.textContent = "선택된 파일 없음";
+        }
+    }
+
+    function handleSubmit(event) {
+        event.preventDefault();
+        
+        let selectedTypes = [];
+        for (let i = 1; i <= 6; i++) {
+            if (document.getElementById('type' + i).checked) {
+                selectedTypes.push(document.getElementById('type' + i).value);
+            }
+        }
+        if (selectedTypes.length === 0) {
+            alert('활동 유형을 최소 한 개 이상 선택해 주세요.');
+            return;
+        }
+
+        const submitBtn = document.getElementById('submitBtn');
+        submitBtn.disabled = true;
+        submitBtn.textContent = "제출 중... 잠시만 기다려주세요.";
+
+        const fileInput = document.getElementById('reportFile').files[0];
+        
+        if (fileInput) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const fileData = e.target.result.split(',')[1];
+                sendData(selectedTypes.join(', '), fileData, fileInput.name, fileInput.type);
+            };
+            reader.readAsDataURL(fileInput);
+        } else {
+            sendData(selectedTypes.join(', '), null, null, null);
+        }
+    }
+
+    function sendData(typesString, fileData, fileName, fileMimeType) {
+        const payload = {
+            entry_714141007: document.getElementById('studentId').value,
+            entry_891378438: document.getElementById('studentName').value,
+            entry_1459175946: document.getElementById('bookTitle').value,
+            entry_1941528484: document.getElementById('careerPath').value,
+            entry_1680430445: typesString,
+            entry_1267805428: document.getElementById('commonIssue').value,
+            entry_1109825435: document.getElementById('commonLink').value,
+            entry_1110588584: document.getElementById('reflectionCore').value,
+            fileData: fileData,
+            fileName: fileName,
+            fileMimeType: fileMimeType
+        };
+
+        fetch(WEB_APP_URL, {
+            method: 'POST',
+            body: JSON.stringify(payload)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if(data.result === "success") {
+                alert('🎉 독서 활동 보고서와 파일이 누락 없이 구글 시트에 완벽히 등록되었습니다!');
+                document.getElementById('reportForm').reset();
+                document.getElementById('dynamicGuide').style.display = 'none';
+                document.getElementById('fileNameDisplay').textContent = "선택된 파일 없음";
+            } else {
+                alert('스크립트 오류가 발생했습니다: ' + data.error);
+            }
+        })
+        .catch(error => {
+            alert('데이터 전송에 실패했습니다. 스크립트 배포 상태(모든 사용자 권한)를 다시 확인해 주세요.');
+            console.error(error);
+        })
+        .finally(() => {
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.disabled = false;
+            submitBtn.textContent = "보고서 최종 제출하기";
+        });
+    }
+</script>
+</body>
+</html>
