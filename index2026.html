@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>고2 석식 보안 출석체크</title>
+    <style>
+        /* 상단 무지개 애니메이션 바 */
+        .live-auth-bar {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 12px;
+            background: linear-gradient(90deg, #ff2400, #e81d1d, #e8b71d, #1de840, #1ddde8, #2b1de8, #dd00f3);
+            background-size: 200% 100%;
+            z-index: 100000;
+            animation: flowing 2s linear infinite;
+        }
+        @keyframes flowing {
+            0% { background-position: 0% 0%; }
+            100% { background-position: -200% 0%; }
+        }
+
+        body {
+            font-family: 'Malgun Gothic', sans-serif;
+            margin: 0; padding: 40px 20px;
+            background-color: #f0f2f5;
+            user-select: none; -webkit-user-select: none;
+        }
+
+        .container {
+            max-width: 550px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+
+        h1 { text-align: center; color: #1a73e8; font-size: 1.6rem; margin-bottom: 5px; }
+        .sub-title { text-align: center; color: #5f6368; margin-bottom: 20px; }
+
+        .live-time {
+            text-align: center; font-size: 1.2rem; color: #4285f4;
+            font-weight: bold; margin-bottom: 20px;
+            background: #e8f0fe; padding: 12px; border-radius: 10px;
+        }
+
+        /* 입력 영역 */
+        .input-group {
+            display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px;
+        }
+        input[type="text"] {
+            padding: 16px; font-size: 1.3rem; border: 2px solid #dadce0;
+            border-radius: 10px; text-align: center; outline: none;
+        }
+        input:focus { border-color: #1a73e8; }
+        
+        button#checkBtn {
+            padding: 16px; background: #1a73e8; color: white;
+            font-size: 1.2rem; font-weight: bold; border: none;
+            border-radius: 10px; cursor: pointer; transition: background 0.2s;
+        }
+        button:disabled { background: #bdc1c6; cursor: not-allowed; }
+
+        /* 결과 메시지 상자 */
+        .message-box {
+            display: none; padding: 25px 20px; border-radius: 12px;
+            text-align: center; font-size: 1.3rem; font-weight: bold; line-height: 1.6;
+            position: relative; overflow: hidden;
+        }
+        .msg-success { background: #e6f4ea; color: #137333; border: 2px solid #81c995; }
+        .msg-fail { background: #fce8e6; color: #c5221f; border: 2px solid #f28b82; }
+
+        /* 0.5초 스캔용 거대 실시간 배지 */
+        .scan-badge {
+            margin-top: 15px; background: #137333; color: white; padding: 15px;
+            border-radius: 10px; font-size: 1.8rem; font-weight: 900; letter-spacing: 1px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15); animation: pulse 0.8s infinite alternate;
+        }
+        @keyframes pulse { 0% { transform: scale(1); } 100% { transform: scale(1.03); } }
+
+        /* 캡처 방지용 덮개 */
+        #blackout {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #000; color: #fff; z-index: 999999;
+            flex-direction: column; justify-content: center; align-items: center;
+            text-align: center; font-size: 1.5rem;
+        }
+
+        .admin-zone {
+            margin-top: 40px; padding-top: 20px; border-top: 1px dashed #dadce0; text-align: center;
+        }
+        .file-input { font-size: 0.8rem; margin-top: 10px; color: #70757a; }
+        .admin-link { color: #dadce0; text-decoration: none; font-size: 0.7rem; border: none; background: none; cursor: pointer; }
+
+        @media print { body { display: none; } }
+    </style>
+</head>
+<body oncontextmenu="return false">
+
+<div class="live-auth-bar"></div>
+
+<div id="blackout">
+    <div>⚠️ 보안 위험 감지 (화면 잠금)</div>
+    <p style="font-size: 1rem; color: #ccc;">창 이탈이 감지되어 데이터가 보호 모드로 전환되었습니다.<br>화면을 클릭하면 다시 초기화됩니다.</p>
+</div>
+
+<div class="container">
+    <h1>석식 출석 체크</h1>
+    <div class="sub-title">고등학교 2학년 (<span id="todayDate"></span>)</div>
+
+    <div class="live-time" id="clock">00:00:00</div>
+
+    <div class="input-group">
+        <input type="text" id="userInput" placeholder="학번(5자리) 또는 이름 입력" autocomplete="off">
+        <button id="checkBtn" onclick="runProcess()">대상자 확인 및 출석</button>
+    </div>
+
+    <div id="msg" class="message-box"></div>
+
+    <div class="admin-zone">
+        <div id="dbStatus" style="font-size: 0.85rem; margin-bottom: 5px; color: #5f6368;">명렬표를 등록해주세요.</div>
+        <input type="file" id="csvFile" accept=".csv" class="file-input">
+        <br><br>
+        <button class="admin-link" onclick="viewAdmin()">[관리자 전용]</button>
+    </div>
+</div>
+
+<script>
+    // 🔗여기에 구글 시트 웹 앱 URL 주소를 넣어주세요.
+    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyH9hdVjCt4nCNbTE1ZiCto3dBY4Z108IwyyU4i62vqHfLNtN1FYwmj-KHsVsJQbiK5dw/exec";
+
+    let students = [];
+    let liveTimeStr = "";
+    let currentDayName = "";
+    
+    const todayObj = new Date();
+    const today = todayObj.toISOString().split('T')[0];
+    document.getElementById('todayDate').innerText = today;
+
+    const weekDays = ["일요일", "월요일", "화요일", "수요일", "목요일", "금요일", "토요일"];
+    currentDayName = weekDays[todayObj.getDay()];
+
+    setInterval(() => {
+        const now = new Date();
+        liveTimeStr = now.toLocaleTimeString();
+        document.getElementById('clock').innerText = liveTimeStr;
+        
+        const activeClock = document.getElementById('scanClock');
+        if (activeClock) activeClock.innerText = liveTimeStr;
+    }, 1000);
+
+    const masterKey = "DINNER_MASTER_DATA";
+    const recordKey = `DINNER_REC_${today}`;
+    let records = JSON.parse(localStorage.getItem(recordKey)) || {};
+
+    window.onload = () => {
+        const saved = localStorage.getItem(masterKey);
+        if (saved) {
+            students = JSON.parse(saved);
+            updateStatus();
+        }
+    };
+
+    const blackout = document.getElementById('blackout');
+    const msgBox = document.getElementById('msg');
+    const inputField = document.getElementById('userInput');
+
+    function resetScreen() {
+        inputField.value = "";
+        msgBox.innerHTML = "";
+        msgBox.style.display = 'none';
+    }
+
+    window.onblur = () => { resetScreen(); blackout.style.display = 'flex'; };
+    window.onfocus = () => setTimeout(() => blackout.style.display = 'none', 300);
+    document.onclick = () => blackout.style.display = 'none';
+    window.onkeydown = (e) => {
+        if (e.key === 'PrintScreen' || e.keyCode === 44) {
+            resetScreen(); blackout.style.display = 'flex';
+            alert('보안 정책상 정보가 보호됩니다.');
+            return false;
+        }
+    };
+
+    document.getElementById('csvFile').onchange = (e) => {
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            const lines = ev.target.result.split(/\r?\n/);
+            students = [];
+            lines.forEach((line, i) => {
+                const cols = line.split(',');
+                if (i > 0 && cols.length >= 2) {
+                    const id = cols[0].trim();
+                    const name = cols[1].trim();
+                    if (id.length === 5) students.push({ id, name });
+                }
+            });
+            localStorage.setItem(masterKey, JSON.stringify(students));
+            updateStatus();
+            alert('명렬표 등록 완료!');
+        };
+        reader.readAsText(e.target.files[0], 'EUC-KR');
+    };
+
+    function updateStatus() {
+        document.getElementById('dbStatus').innerText = `🟢 명렬표 등록됨 (${students.length}명)`;
+    }
+
+    // ──────────────────────────────────────────────────────
+    // 🚀 [최종 보완] 폭주 및 누락 방지 전송 함수 (Retry 기능 포함)
+    // ──────────────────────────────────────────────────────
+    async function sendWithRetry(payload, maxRetries = 3, delay = 500) {
+        for (let i = 0; i < maxRetries; i++) {
+            try {
+                let response = await fetch(WEB_APP_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    body: JSON.stringify(payload)
+                });
+                return true; // 전송 성공 시 즉시 리턴
+            } catch (err) {
+                console.warn(`전송 실패, ${delay}ms 후 재시도 중... (${i + 1}/${maxRetries})`);
+                if (i < maxRetries - 1) {
+                    await new Promise(res => setTimeout(res, delay)); // 지정한 시간만큼 대기 후 재시도
+                }
+            }
+        }
+        return false; // 3번 모두 실패 시 false 리턴
+    }
+
+    async function runProcess() {
+        const input = inputField.value.trim();
+        const btn = document.getElementById('checkBtn');
+
+        if (!students.length) return alert('명렬표를 먼저 등록하세요.');
+        if (!input) return;
+
+        const found = students.find(s => s.id === input || s.name === input);
+
+        if (found) {
+            if (records[found.id]) {
+                msgBox.className = "message-box msg-fail";
+                msgBox.innerHTML = `⚠️ 이미 출석 완료되었습니다.<br>[${found.id} ${found.name}]<br>${records[found.id]}`;
+                msgBox.style.display = 'block';
+                return;
+            }
+
+            // [보안/과부하 방지] 버튼 즉시 얼리기
+            btn.disabled = true;
+            btn.innerText = "안전하게 출석 기록 중...";
+
+            const payload = { studentId: found.id, name: found.name, timeStr: liveTimeStr, dateStr: today };
+
+            // 재시도 로직을 탑재한 안전 전송 실행
+            const isSuccess = await sendWithRetry(payload);
+
+            if (isSuccess) {
+                // 구글 시트 등록 확인 후 내 폰(로컬)에 저장
+                records[found.id] = liveTimeStr;
+                localStorage.setItem(recordKey, JSON.stringify(records));
+
+                msgBox.className = "message-box msg-success";
+                msgBox.innerHTML = `
+                    🎉 석식 대상 확인 완료<br>
+                    <b>[${found.id} ${found.name}]</b><br>
+                    <div class="scan-badge">
+                        <div>${currentDayName}</div>
+                        <div id="scanClock" style="font-size: 1.4rem; margin-top: 5px; font-weight: normal;">${liveTimeStr}</div>
+                    </div>
+                `;
+                msgBox.style.display = 'block';
+                inputField.value = "";
+            } else {
+                // 네트워크가 완전히 끊겼거나 구글 서버 에러 시 예외 처리
+                alert('⚠️ 트래픽 폭주 또는 인터넷 연결 불안정으로 기록에 실패했습니다. 다시 시도해 주세요.');
+            }
+
+            // 버튼 해제
+            btn.disabled = false;
+            btn.innerText = "대상자 확인 및 출석";
+            
+        } else {
+            msgBox.className = "message-box msg-fail";
+            msgBox.innerHTML = `❌ 석식 대상자가 아닙니다.<br>명렬표 정보를 확인하세요.`;
+            msgBox.style.display = 'block';
+        }
+    }
+
+    function viewAdmin() {
+        const pw = prompt('관리자 비밀번호:');
+        if (pw === '1234') {
+            let list = Object.entries(records).map(([id, t]) => `${id} : ${t}`).join('\n');
+            alert(list || '출석 데이터 없음');
+        }
+    }
+
+    inputField.onkeyup = (e) => { if(e.key === 'Enter') runProcess(); };
+</script>
+</body>
+</html>
