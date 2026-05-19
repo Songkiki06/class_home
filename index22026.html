@@ -132,23 +132,41 @@
     let currentDayName = "";
     let clickCount = 0; // 비밀번호 창 유도용 카운터
     
-    const todayObj = new Date();
-    const today = todayObj.toISOString().split('T')[0];
-    document.getElementById('todayDate').innerText = today;
-
+    // 글로벌 날짜 및 기록 변수 선언
+    let today = "";
+    let recordKey = "";
+    let records = {};
     const weekDays = ["일요일", "월요일", "화요일", "수요일", "목요일", "금요일", "토요일"];
-    currentDayName = weekDays[todayObj.getDay()];
 
-    setInterval(() => {
+    // 실시간 시간 및 날짜 체크 함수 (1초마다 동시 갱신)
+    function updateClockAndDate() {
         const now = new Date();
+        
+        // 1) 날짜 실시간 체크 및 반영
+        const currentToday = now.toISOString().split('T')[0];
+        if (today !== currentToday) {
+            today = currentToday;
+            document.getElementById('todayDate').innerText = today;
+            
+            // 날짜 변경 시 실시간으로 로컬 스토리지 키와 기록 초기화/로드
+            recordKey = `DINNER_REC_${today}`;
+            records = JSON.parse(localStorage.getItem(recordKey)) || {};
+        }
+
+        // 2) 요일 실시간 업데이트
+        currentDayName = weekDays[now.getDay()];
+
+        // 3) 시간 실시간 업데이트
         liveTimeStr = now.toLocaleTimeString();
         document.getElementById('clock').innerText = liveTimeStr;
+        
         const activeClock = document.getElementById('scanClock');
         if (activeClock) activeClock.innerText = liveTimeStr;
-    }, 1000);
+    }
 
-    const recordKey = `DINNER_REC_${today}`;
-    let records = JSON.parse(localStorage.getItem(recordKey)) || {};
+    // 초기 즉시 실행 후 1초마다 루프 작동
+    updateClockAndDate();
+    setInterval(updateClockAndDate, 1000);
 
     // 구글 시트 데이터 원격 다운로드
     window.onload = async () => {
@@ -170,7 +188,7 @@
         }
     };
 
-    // 🔒 [신규 기능] 교사용 비밀 관리자 창 열기 함수
+    // 🔒 교사용 비밀 관리자 창 열기 함수
     function triggerAdmin() {
         clickCount++;
         if (clickCount >= 3) { // 상단 제목을 연속 3번 누르면
@@ -219,7 +237,7 @@
         reader.readAsText(e.target.files[0], 'EUC-KR');
     };
 
-    // 보안 및 전송 로직 (기존과 동일)
+    // 보안 및 전송 로직
     const blackout = document.getElementById('blackout');
     const msgBox = document.getElementById('msg');
     const inputField = document.getElementById('userInput');
