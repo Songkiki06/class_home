@@ -31,6 +31,7 @@
             color: #e74c3c;
             font-weight: bold;
             margin-bottom: 20px;
+            line-height: 1.4;
         }
         .clock {
             font-size: 24px;
@@ -79,7 +80,7 @@
             font-weight: bold;
             display: none; 
             line-height: 1.6;
-            white-space: pre-line; /* 서버의 줄바꿈 문자(\n)를 화면에 반영 */
+            white-space: pre-line;
         }
         .success { 
             display: block !important;
@@ -99,7 +100,10 @@
 
 <div class="container">
     <h2>야자 출석체크</h2>
-    <div class="time-info">⚠️ 중복 출석체크 절대 불가 (하루 1회 제한)</div>
+    <div class="time-info">
+        ⏰ 출석 가능 시간: 22:30 ~ 22:35<br>
+        (하루에 딱 1번만 출석체크 가능)
+    </div>
     
     <div class="clock" id="liveClock">00:00:00</div>
 
@@ -122,8 +126,8 @@
 </div>
 
 <script>
-    // ⚠️ [필수] 구글 앱스 스크립트에서 배포 관리로 갱신한 웹 앱 URL을 여기에 붙여넣으세요!
-    const GOOGLE_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwudIm2K6apKUUCTaM4eLyWbu9qgb6G2qLNg_AzeJBtBGPRb2VYxwBwqbpMnl_rl0CapQ/exec";
+    // ⚠️ 구글 앱스 스크립트 배포 관리에서 새로 발급받은 웹 앱 URL을 넣어주세요!
+    const GOOGLE_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyHNtu3mp1ktOI8Rxgnjx8DklZjTDGkhkc9KmCe9jCUKj6iohPy7D83b9n9p2sABzy0ww/exec";
 
     function updateClock() {
         const now = new Date();
@@ -153,13 +157,13 @@
 
         if(!studentInfo || !attendanceReason) return;
 
-        // 전송 대기 상태 UI 활성화 및 중복 전송 방지 잠금
+        // 제출 중 상태 표시 및 입력창 잠금
         messageDiv.style.display = 'block';
         messageDiv.className = '';
         messageDiv.style.color = '#333';
         messageDiv.style.backgroundColor = '#e2e3e5';
         messageDiv.style.border = '1px solid #d6d8db';
-        messageDiv.innerText = "서울 서버에 중복 여부를 조회하고 있습니다...";
+        messageDiv.innerText = "서버 시간 및 중복 여부를 확인하고 있습니다...";
         
         studentInfoInput.disabled = true;
         attendanceReasonInput.disabled = true;
@@ -176,19 +180,17 @@
         .then(response => response.json())
         .then(data => {
             if (data.status === 'success') {
-                // 성공 문구 출력 및 양식 초기화
                 messageDiv.className = 'success';
-                messageDiv.innerHTML = `🎉 출결 처리 완료 🎉<br><b style="font-size:15px;">${data.studentName} (${data.studentId})</b><br>[${attendanceReason}] 기록되었습니다.`;
+                messageDiv.innerHTML = `🎉 출결 처리 완료 🎉<br><b style="font-size:15px;">${data.studentName} (${data.studentId})</b><br>[${attendanceReason}] 처리되었습니다.`;
                 
                 studentInfoInput.value = '';
                 attendanceReasonInput.selectedIndex = 0;
             } else {
-                // 중복 출석체크 알림 혹은 명렬표 누락 정보 표시
+                // 시간 초과, 중복 로그인, 명렬표 오류 등을 모두 대응하여 에러 메시지 표출
                 messageDiv.className = 'error';
                 messageDiv.innerHTML = `❌ 요청 처리 실패 ❌<br><span style="font-size:14px;">${data.message}</span>`;
             }
             
-            // 입력 락 해제
             studentInfoInput.disabled = false;
             attendanceReasonInput.disabled = false;
             submitBtn.disabled = false;
