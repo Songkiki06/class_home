@@ -101,8 +101,7 @@
 <div class="container">
     <h2>야자 출석체크</h2>
     <div class="time-info">
-        ⏰ 출석 가능 시간: 22:30 ~ 22:35<br>
-        (하루에 딱 1번만 출석체크 가능)
+        ⏰ 출석 가능 시간: 22:30 ~ 22:35
     </div>
     
     <div class="clock" id="liveClock">00:00:00</div>
@@ -126,8 +125,8 @@
 </div>
 
 <script>
-    // ⚠️ 구글 앱스 스크립트 배포 관리에서 새로 발급받은 웹 앱 URL을 넣어주세요!
-    const GOOGLE_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyHNtu3mp1ktOI8Rxgnjx8DklZjTDGkhkc9KmCe9jCUKj6iohPy7D83b9n9p2sABzy0ww/exec";
+    // 기존에 붙여넣으신 구글 앱스 스크립트 웹 앱 URL을 그대로 유지했습니다.
+    const GOOGLE_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbylaZNasQAP8l_dCVDalpca2Qc2pxaMpPzZRb7G3lMYspNkIrr_EkY8C4UCFoUCXIOt5g/exec";
 
     function updateClock() {
         const now = new Date();
@@ -157,13 +156,13 @@
 
         if(!studentInfo || !attendanceReason) return;
 
-        // 제출 중 상태 표시 및 입력창 잠금
+        // 로딩 메시지에서도 직관적으로 변경
         messageDiv.style.display = 'block';
         messageDiv.className = '';
         messageDiv.style.color = '#333';
         messageDiv.style.backgroundColor = '#e2e3e5';
         messageDiv.style.border = '1px solid #d6d8db';
-        messageDiv.innerText = "서버 시간 및 중복 여부를 확인하고 있습니다...";
+        messageDiv.innerText = "서버 시간을 확인하고 있습니다...";
         
         studentInfoInput.disabled = true;
         attendanceReasonInput.disabled = true;
@@ -186,7 +185,6 @@
                 studentInfoInput.value = '';
                 attendanceReasonInput.selectedIndex = 0;
             } else {
-                // 시간 초과, 중복 로그인, 명렬표 오류 등을 모두 대응하여 에러 메시지 표출
                 messageDiv.className = 'error';
                 messageDiv.innerHTML = `❌ 요청 처리 실패 ❌<br><span style="font-size:14px;">${data.message}</span>`;
             }
