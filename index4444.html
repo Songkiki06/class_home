@@ -125,9 +125,10 @@
 </div>
 
 <script>
-    // 🚨 여기에 [해결책 1]에서 새로 발급받은 '새 배포' URL을 넣어주세요!
+    // 구글 앱스 스크립트 웹앱 URL (이전 수정 코드와 연결됨)
     const GOOGLE_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbw_lcuPPymlwVOkXChuhMnf5DbO2QMDvNm9mqAzCx6QQ998GtrpNNy46855K9MFmugFKw/exec";
 
+    // 실시간 시계 기능
     function updateClock() {
         const now = new Date();
         const hours = now.getHours();
@@ -143,6 +144,7 @@
     setInterval(updateClock, 1000);
     updateClock();
 
+    // 폼 전송 이벤트
     document.getElementById('attendanceForm').addEventListener('submit', function(e) {
         e.preventDefault();
         
@@ -151,15 +153,15 @@
         const messageDiv = document.getElementById('message');
         const submitBtn = document.getElementById('submitBtn');
 
-        // 🛡️ [HTML 추가 방어선] 서버로 쏘기 전에 기기 시간 기준으로 1차 필터링
+        // 🛡️ [HTML 추가 방어선] 기기 시간 기준 1차 필터링 (20:00 ~ 20:30 매칭 완료)
         const now = new Date();
         const currentHour = now.getHours();
         const currentMinute = now.getMinutes();
 
-        if (currentHour !== 18 || currentMinute < 30 || currentMinute > 35) {
+        if (currentHour !== 20 || currentMinute < 0 || currentMinute > 30) {
             messageDiv.className = 'error';
-            messageDiv.innerHTML = `❌ 지금은 출석체크 시간이 아닙니다.<br><span style="font-size:13px; color:#c0392b;">출석 가능 시간은 18:55 ~ 19:00 입니다.</span>`;
-            return; // 서버로 요청을 보내지 않고 여기서 완전히 중단
+            messageDiv.innerHTML = `❌ 지금은 출석체크 시간이 아닙니다.<br><span style="font-size:13px; color:#c0392b;">출석 가능 시간은 20:00 ~ 20:30 입니다.</span>`;
+            return; // 서버로 요청을 보내지 않고 중단
         }
 
         const studentInfo = studentInfoInput.value.trim();
@@ -167,13 +169,15 @@
 
         if(!studentInfo || !attendanceReason) return;
 
+        // 대기 상태 표시
         messageDiv.style.display = 'block';
         messageDiv.className = '';
         messageDiv.style.color = '#333';
         messageDiv.style.backgroundColor = '#e2e3e5';
         messageDiv.style.border = '1px solid #d6d8db';
-        messageDiv.innerText = "서버 시간을 확인하고 있습니다...";
+        messageDiv.innerText = "서버 데이터를 확인하고 있습니다...";
         
+        // 중복 클릭 방지를 위한 비활성화
         studentInfoInput.disabled = true;
         attendanceReasonInput.disabled = true;
         submitBtn.disabled = true;
@@ -182,6 +186,7 @@
         formData.append('studentInfo', studentInfo);
         formData.append('attendanceReason', attendanceReason);
 
+        // 구글 서버로 데이터 전송
         fetch(GOOGLE_WEB_APP_URL, {
             method: 'POST',
             body: formData
@@ -192,13 +197,16 @@
                 messageDiv.className = 'success';
                 messageDiv.innerHTML = `🎉 출결 처리 완료 🎉<br><b style="font-size:15px;">${data.studentName} (${data.studentId})</b><br>[${attendanceReason}] 처리되었습니다.`;
                 
+                // 성공 시 입력창 초기화
                 studentInfoInput.value = '';
                 attendanceReasonInput.selectedIndex = 0;
             } else {
+                // 실패 시 서버가 보내준 에러 메시지 출력 (중복, 미등록 등)
                 messageDiv.className = 'error';
                 messageDiv.innerHTML = `❌ 요청 처리 실패 ❌<br><span style="font-size:14px;">${data.message}</span>`;
             }
             
+            // 입력창 재활성화
             studentInfoInput.disabled = false;
             attendanceReasonInput.disabled = false;
             submitBtn.disabled = false;
