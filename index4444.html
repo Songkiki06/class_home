@@ -100,8 +100,9 @@
 
 <div class="container">
     <h2>야간 자율학습 출석체크</h2>
+    <!-- ⏰ 상단 안내 메시지 시간 변경 완료 -->
     <div class="time-info">
-        ⏰ 출석 가능 시간 20:00 ~ 20:30
+        ⏰ 출석 가능 시간 18:50 ~ 18:55
     </div>
     
     <div class="clock" id="liveClock">00:00:00</div>
@@ -126,7 +127,7 @@
 
 <script>
     // 구글 앱스 스크립트 웹앱 URL (이전 수정 코드와 연결됨)
-    const GOOGLE_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbw_lcuPPymlwVOkXChuhMnf5DbO2QMDvNm9mqAzCx6QQ998GtrpNNy46855K9MFmugFKw/exec";
+    const GOOGLE_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzkHZOpW3QfpmXBbzTR1MQFNvaAW7YV2IgniL2OysdzF5x7f79OtB1CzDHpn3lunoYoNA/exec";
 
     // 실시간 시계 기능
     function updateClock() {
@@ -153,14 +154,14 @@
         const messageDiv = document.getElementById('message');
         const submitBtn = document.getElementById('submitBtn');
 
-        // 🛡️ [HTML 추가 방어선] 기기 시간 기준 1차 필터링 (20:00 ~ 20:30 매칭 완료)
+        // 🛡️ [HTML 추가 방어선] 기기 시간 기준 1차 필터링 수정 (18:50 ~ 18:55 매칭 완료)
         const now = new Date();
         const currentHour = now.getHours();
         const currentMinute = now.getMinutes();
 
-        if (currentHour !== 20 || currentMinute < 0 || currentMinute > 30) {
+        if (currentHour !== 18 || currentMinute < 50 || currentMinute > 55) {
             messageDiv.className = 'error';
-            messageDiv.innerHTML = `❌ 지금은 출석체크 시간이 아닙니다.<br><span style="font-size:13px; color:#c0392b;">출석 가능 시간은 20:00 ~ 20:30 입니다.</span>`;
+            messageDiv.innerHTML = `❌ 지금은 출석체크 시간이 아닙니다.<br><span style="font-size:13px; color:#c0392b;">출석 가능 시간은 18:50 ~ 18:55 입니다.</span>`;
             return; // 서버로 요청을 보내지 않고 중단
         }
 
