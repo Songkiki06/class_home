@@ -126,7 +126,7 @@
 
 <script>
     // 🚨 여기에 [해결책 1]에서 새로 발급받은 '새 배포' URL을 넣어주세요!
-    const GOOGLE_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzzQyQ4Dha_MHIpqyVz8OfmvRyQhDXBYMLdtVskbMC65EWcQkbFE8amrJQwswZbzSyg9Q/exec";
+    const GOOGLE_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbw_lcuPPymlwVOkXChuhMnf5DbO2QMDvNm9mqAzCx6QQ998GtrpNNy46855K9MFmugFKw/exec";
 
     function updateClock() {
         const now = new Date();
@@ -156,9 +156,9 @@
         const currentHour = now.getHours();
         const currentMinute = now.getMinutes();
 
-        if (currentHour !== 22 || currentMinute < 30 || currentMinute > 35) {
+        if (currentHour !== 18 || currentMinute < 30 || currentMinute > 35) {
             messageDiv.className = 'error';
-            messageDiv.innerHTML = `❌ 지금은 출석체크 시간이 아닙니다.<br><span style="font-size:13px; color:#c0392b;">출석 가능 시간은 22:30 ~ 22:35 입니다.</span>`;
+            messageDiv.innerHTML = `❌ 지금은 출석체크 시간이 아닙니다.<br><span style="font-size:13px; color:#c0392b;">출석 가능 시간은 18:55 ~ 19:00 입니다.</span>`;
             return; // 서버로 요청을 보내지 않고 여기서 완전히 중단
         }
 
