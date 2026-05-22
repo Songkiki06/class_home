@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>야간 자율학습 출석체크</title>
+    <style>
+        body { font-family: 'Malgun Gothic', sans-serif; background-color: #f4f6f9; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .container { background-color: #ffffff; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); text-align: center; width: 350px; }
+        h2 { color: #333; margin-bottom: 5px; }
+        .time-info { font-size: 14px; color: #e74c3c; font-weight: bold; margin-bottom: 20px; line-height: 1.4; }
+        .clock { font-size: 24px; font-weight: bold; color: #2c3e50; margin-bottom: 25px; background: #eceff1; padding: 10px; border-radius: 8px; }
+        input[type="text"], select { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-size: 16px; text-align: center; }
+        button { width: 100%; padding: 12px; background-color: #3498db; color: white; border: none; border-radius: 6px; font-size: 16px; cursor: pointer; font-weight: bold; }
+        button:disabled { background-color: #bdc3c7; cursor: not-allowed; }
+        #message { margin-top: 20px; padding: 15px; border-radius: 6px; font-size: 14px; font-weight: bold; display: none; line-height: 1.6; white-space: pre-line; }
+        .success { display: block !important; color: #155724; background-color: #d4edda; border: 1px solid #c3e6cb; }
+        .error { display: block !important; color: #721c24; background-color: #f8d7da; border: 2px solid #f5c6cb; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h2>야간 자율학습 출석체크</h2>
+    <div class="time-info">⏰ 출석 가능 시간 18:20 ~ 18:50</div>
+    <div class="clock" id="liveClock">00:00:00</div>
+    <form id="attendanceForm">
+        <input type="text" id="studentInfo" placeholder="학번 또는 이름을 입력하세요" required>
+        <select id="attendanceReason" required>
+            <option value="" disabled selected>--- 출석 사유 선택 ---</option>
+            <option value="출석">정상 출석</option>
+            <option value="공동교육과정">공동교육과정</option>
+        </select>
+        <button type="submit" id="submitBtn">출석체크 하기</button>
+    </form>
+    <div id="message"></div>
+</div>
+
+<script>
+    // ⚠️ 본인의 구글 스크립트 배포 URL 주소를 여기에 꼭 확인 및 붙여넣기 해주세요!
+    const GOOGLE_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbz8QmIV930zW7TZyDsVnsQTrzF2r6Dvm4ymsn2tbpCKQ01N6n4RtT6rb0o33lj5F61eNw/exec";
+
+    function updateClock() {
+        const now = new Date();
+        const timeString = now.toLocaleTimeString('ko-KR', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        document.getElementById('liveClock').innerText = timeString;
+    }
+    setInterval(updateClock, 1000); updateClock();
+
+    document.getElementById('attendanceForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const studentInfoInput = document.getElementById('studentInfo');
+        const attendanceReasonInput = document.getElementById('attendanceReason');
+        const messageDiv = document.getElementById('message');
+        const submitBtn = document.getElementById('submitBtn');
+
+        // 버튼 및 입력창 잠금 (중복 클릭 방지)
+        submitBtn.disabled = true; submitBtn.innerText = "전송 중...";
+        studentInfoInput.disabled = true; attendanceReasonInput.disabled = true;
+
+        const now = new Date();
+        const h = now.getHours(); const m = now.getMinutes();
+        
+        // ⏰ 시간 제한 판정 수정 (18:20 ~ 18:50)
+        if (h !== 18 || m < 20 || m > 50) {
+            messageDiv.className = 'error';
+            messageDiv.innerHTML = `❌ 출석 시간이 아닙니다 ❌\n(출석 가능 시간: 18:20 ~ 18:50)`;
+            submitBtn.disabled = false; submitBtn.innerText = "출석체크 하기";
+            studentInfoInput.disabled = false; attendanceReasonInput.disabled = false;
+            return;
+        }
+
+        const formData = new URLSearchParams();
+        formData.append('studentInfo', studentInfoInput.value.trim());
+        formData.append('attendanceReason', attendanceReasonInput.value);
+
+        messageDiv.style.display = 'block'; messageDiv.className = ''; messageDiv.innerText = "서버 데이터를 확인하고 있습니다...";
+
+        fetch(GOOGLE_WEB_APP_URL, { method: 'POST', body: formData })
+        .then(res => res.json())
+        .then(data => {
+            if (data.status === 'success') {
+                messageDiv.className = 'success';
+                messageDiv.innerHTML = `🎉 출결 완료 🎉\n${data.studentName} (${data.studentId})\n[${attendanceReasonInput.value}] 처리되었습니다.`;
+                submitBtn.innerText = "출석 완료";
+            } else {
+                messageDiv.className = 'error';
+                
+                // 메시지 내용에 따른 상단 안내 문구 세분화
+                if (data.message.includes("이미 오늘")) {
+                    messageDiv.innerHTML = `❌ 중복 안내 ❌\n${data.message}`;
+                    submitBtn.innerText = "확인 완료 (제출 불가)";
+                } else if (data.message.includes("등록되지 않은")) {
+                    messageDiv.innerHTML = `❌ 등록 오류 ❌\n${data.message}`;
+                    // 오타 수정 후 재제출을 위해 입력창 다시 활성화
+                    submitBtn.disabled = false; submitBtn.innerText = "다시 시도하기";
+                    studentInfoInput.disabled = false; attendanceReasonInput.disabled = false;
+                } else {
+                    messageDiv.innerHTML = `❌ 시스템 오류 ❌\n${data.message}`;
+                    submitBtn.disabled = false; submitBtn.innerText = "다시 시도하기";
+                    studentInfoInput.disabled = false; attendanceReasonInput.disabled = false;
+                }
+            }
+        })
+        .catch(err => {
+            messageDiv.className = 'error'; messageDiv.innerHTML = "❌ 통신 오류 ❌\n인터넷 연결을 확인하고 다시 시도해 주세요.";
+            submitBtn.disabled = false; submitBtn.innerText = "출석체크 하기";
+            studentInfoInput.disabled = false; attendanceReasonInput.disabled = false;
+        });
+    });
+</script>
+</body>
+</html>
