@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>야간자율학습 셀프 출석체크</title>
+    <style>
+        body { font-family: 'Malgun Gothic', sans-serif; background-color: #f4f6f9; margin: 0; padding: 0; display: flex; align-items: center; justify-content: center; min-height: 100vh; color: #333; }
+        .container { width: 100%; max-width: 600px; background: #fff; padding: 30px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.08); margin: 20px; text-align: center; }
+        h2 { text-align: center; color: #2c3e50; margin-bottom: 30px; font-size: 24px; }
+        
+        .form-group { margin-bottom: 10px; text-align: left; }
+        label { display: block; font-weight: bold; margin-bottom: 12px; color: #555; font-size: 16px; }
+        
+        .search-box { display: flex; gap: 10px; }
+        .search-box input { flex: 1; padding: 15px; border: 2px solid #3498db; border-radius: 8px; font-size: 18px; font-weight: bold; outline: none; }
+        .search-box input:focus { border-color: #2980b9; box-shadow: 0 0 5px rgba(52,152,219,0.3); }
+        .search-box button { width: 110px; background-color: #3498db; color: white; border: none; border-radius: 8px; font-size: 18px; font-weight: bold; cursor: pointer; transition: background 0.2s; }
+        .search-box button:hover { background-color: #2980b9; }
+        .search-box button:disabled { background-color: #bdc3c7; cursor: not-allowed; }
+        
+        .info-text { margin-top: 15px; font-size: 13px; color: #95a5a6; text-align: center; }
+        .loading-overlay { display: none; text-align: center; color: #3498db; font-weight: bold; font-size: 16px; margin-top: 15px; }
+        
+        /* 🔒 상태별 안내 상자 공통 스타일 */
+        .status-box { display: none; padding: 25px; border-radius: 8px; border: 2px dashed #cbd5e0; margin-top: 10px; }
+        .status-icon { font-size: 50px; margin-bottom: 12px; }
+        .status-title { font-size: 20px; font-weight: bold; margin-bottom: 8px; }
+        .status-desc { font-size: 15px; color: #4a5568; line-height: 1.5; }
+        
+        /* 개별 상태 커스텀 컬러 */
+        .color-before { background-color: #eaf2f8; .status-title { color: #2980b9; } }
+        .color-after { background-color: #fdf2f2; .status-title { color: #c0392b; } }
+        .color-closed { background-color: #f7f9fa; .status-title { color: #7f8c8d; } }
+        .color-weekend { background-color: #fef9e7; .status-title { color: #d35400; } } /* 💡 주말 스타일 추가 */
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2 id="mainTitle">🌙 야간자율학습 셀프 출석체크</h2>
+    
+    <div id="activeArea">
+        <div class="form-group">
+            <label for="studentInput">✍️ 학번 또는 이름을 입력하고 등록하세요</label>
+            <div class="search-box">
+                <input type="text" id="studentInput" placeholder="로딩 중..." disabled onkeydown="if(event.keyCode==13) checkByStudent()">
+                <button id="submitCheckBtn" onclick="checkByStudent()" disabled>출석</button>
+            </div>
+        </div>
+        <div id="loadingMessage" class="loading-overlay">구글 시트 연동 및 제한 시간 검사 중...</div>
+        <div class="info-text">※ 출석 인정 시간: 18:20 ~ 18:50 (시간 외 등록 불가)</div>
+    </div>
+
+    <div id="beforeArea" class="status-box color-before">
+        <div class="status-icon">⏳</div>
+        <div class="status-title" style="color: #2980b9;">출석체크 대기 중</div>
+        <div class="status-desc">야간자율학습 출석체크 시작 전입니다.<br><b>오후 6시 20분</b>부터 등록할 수 있습니다.</div>
+    </div>
+
+    <div id="afterArea" class="status-box color-after">
+        <div class="status-icon">⏰</div>
+        <div class="status-title" style="color: #c0392b;">출석체크 시간 종료</div>
+        <div class="status-desc">오늘 자율학습 출석인정 시간이 종료되었습니다.<br>(출석 가능 시간: 18:20 ~ 18:50)</div>
+    </div>
+
+    <div id="closedArea" class="status-box color-closed">
+        <div class="status-icon">🔒</div>
+        <div class="status-title" style="color: #7f8c8d;">출석 마감 완료</div>
+        <div class="status-desc">선생님께서 출석체크를 최종 마감 처리하셨습니다.<br>지금부터는 추가 등록이 불가능합니다.</div>
+    </div>
+
+    <!-- 💡 주말 전용 안내 상자 추가 -->
+    <div id="weekendArea" class="status-box color-weekend">
+        <div class="status-icon">🏡</div>
+        <div class="status-title" style="color: #d35400;">주말 출석체크 비활성화</div>
+        <div class="status-desc">오늘은 주말입니다.<br>야간자율학습 출석체크를 진행하지 않습니다.</div>
+    </div>
+</div>
+
+<script>
+    // 💡 1. 구글 웹 앱 URL 주소 입력 (새 배포 URL 필수!)
+    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycby-N7Hs3HZu9uH4PtQd3fd1qJYPfhFYDroCD9ByzA_a-kpLWsoJzqxKzvlfMCYQCoBv/exec";
+
+    // 💡 2. 관리자 마감 비밀번호
+    const ADMIN_PASSWORD = "admin1234";
+
+    let currentStudents = [];
+    let todayDay = "월"; 
+    let todayDateStr = "";
+    let isWeekend = false; // 💡 주말 여부 플래그 추가
+
+    window.onload = function() {
+        determineTodayDay();
+        checkTimeAndFetchStudents();
+    };
+
+    function determineTodayDay() {
+        const days = ['일', '월', '화', '수', '목', '금', '토'];
+        const now = new Date();
+        const dayIdx = now.getDay();
+        const dayName = days[dayIdx];
+        
+        // 주말(토, 일) 판별 로직 수정
+        if (dayIdx === 0 || dayIdx === 6) {
+            isWeekend = true;
+            todayDay = dayName;
+        } else {
+            isWeekend = false;
+            todayDay = dayName;
+        }
+        
+        todayDateStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+        
+        document.getElementById("mainTitle").innerText = `🌙 야간자율학습 셀프 출석체크 (${todayDay}요일)`;
+    }
+
+    // 시간 검사 및 학생 목록 로드
+    function checkTimeAndFetchStudents() {
+        const inputField = document.getElementById("studentInput");
+        const btn = document.getElementById("submitCheckBtn");
+        const loading = document.getElementById("loadingMessage");
+
+        // 전체 화면 레이아웃 일단 숨김 처리 준비
+        document.getElementById("activeArea").style.display = "none";
+        document.getElementById("beforeArea").style.display = "none";
+        document.getElementById("afterArea").style.display = "none";
+        document.getElementById("closedArea").style.display = "none";
+        document.getElementById("weekendArea").style.display = "none";
+
+        // 💡 주말인 경우 서버 요청을 보내지 않고 바로 주말 안내 창 표시
+        if (isWeekend) {
+            document.getElementById("weekendArea").style.display = "block";
+            return;
+        }
+
+        loading.style.display = "block";
+        inputField.placeholder = "출석 시간 검증 중...";
+
+        fetch(`${WEB_APP_URL}?day=${encodeURIComponent(todayDay)}&date=${todayDateStr}`)
+        .then(response => response.json())
+        .then(res => {
+            loading.style.display = "none";
+            
+            if (res.error) {
+                alert("시스템 오류: " + res.error);
+                return;
+            }
+
+            // 서버 조건 판별에 따른 화면 분기 처리
+            if (res.status === "TIME_BEFORE") {
+                document.getElementById("beforeArea").style.display = "block";
+            } else if (res.status === "TIME_AFTER") {
+                document.getElementById("afterArea").style.display = "block";
+            } else if (res.status === "ADMIN_CLOSED") {
+                document.getElementById("closedArea").style.display = "block";
+            } else if (res.status === "OPEN") {
+                // 정상 오픈 상태
+                document.getElementById("activeArea").style.display = "block";
+                
+                currentStudents = res.students.map(s => ({
+                    sno: s.sno,
+                    name: s.name,
+                    status: "결석",
+                    checkTime: ""
+                }));
+
+                if (currentStudents.length === 0) {
+                    inputField.placeholder = `오늘 명렬표 등록 인원이 없습니다.`;
+                } else {
+                    inputField.placeholder = "학번 또는 이름 입력";
+                    inputField.disabled = false;
+                    btn.disabled = false;
+                    inputField.focus();
+                }
+            }
+        })
+        .catch(error => {
+            loading.style.display = "none";
+            document.getElementById("activeArea").style.display = "block";
+            inputField.placeholder = "연동 실패";
+            alert("서버 연결에 실패했습니다. 네트워크를 확인하세요.\n" + error);
+        });
+    }
+
+    function checkByStudent() {
+        const inputField = document.getElementById("studentInput");
+        const val = inputField.value.trim();
+
+        if (!val) return;
+
+        if (val === ADMIN_PASSWORD) {
+            if(confirm("🔒 출석을 마감하시겠습니까?\n미입력자는 모두 결석(파란색) 처리되며 오늘 출석창이 잠깁니다.")) {
+                submitToGoogleSheet();
+            }
+            inputField.value = "";
+            inputField.focus();
+            return;
+        }
+
+        let found = false;
+        const now = new Date();
+        const timeStr = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+
+        currentStudents.forEach((student) => {
+            const snoStr = student.sno ? student.sno.toString().trim() : "";
+            const nameStr = student.name ? student.name.toString().trim() : "";
+
+            if (val === snoStr || val === nameStr) {
+                if (student.status === "출석") {
+                    alert(`⚠️ [${student.name}] 학생은 이미 출석이 완료되었습니다.`);
+                } else {
+                    student.status = "출석";
+                    student.checkTime = timeStr;
+                    alert(`✅ [${student.name}] 출석이 확인되었습니다.`);
+                }
+                found = true;
+            }
+        });
+
+        if (!found) {
+            alert("⚠️ 명렬표에 없는 정보입니다. 다시 입력해 주세요.");
+        }
+
+        inputField.value = "";
+        inputField.focus();
+    }
+
+    function submitToGoogleSheet() {
+        const inputField = document.getElementById("studentInput");
+        const btn = document.getElementById("submitCheckBtn");
+        
+        const now = new Date();
+        const timeStr = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+
+        const payload = {
+            day: todayDay,
+            date: todayDateStr,
+            time: timeStr, 
+            students: currentStudents
+        };
+
+        inputField.disabled = true;
+        btn.disabled = true;
+
+        fetch(WEB_APP_URL, {
+            method: "POST",
+            mode: "no-cors",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+        })
+        .then(() => {
+            alert(`🎉 최종 마감 처리가 완료되었습니다.`);
+            location.reload(); 
+        })
+        .catch(error => {
+            alert("전송 실패: " + error);
+            inputField.disabled = false;
+            btn.disabled = false;
+        });
+    }
+</script>
+
+</body>
+</html>
