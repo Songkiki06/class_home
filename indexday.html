@@ -29,10 +29,14 @@
         .status-desc { font-size: 15px; color: #4a5568; line-height: 1.5; }
         
         /* 개별 상태 커스텀 컬러 */
-        .color-before { background-color: #eaf2f8; .status-title { color: #2980b9; } }
-        .color-after { background-color: #fdf2f2; .status-title { color: #c0392b; } }
-        .color-closed { background-color: #f7f9fa; .status-title { color: #7f8c8d; } }
-        .color-weekend { background-color: #fef9e7; .status-title { color: #d35400; } } /* 💡 주말 스타일 추가 */
+        .color-before { background-color: #eaf2f8; }
+        .color-before .status-title { color: #2980b9; }
+        .color-after { background-color: #fdf2f2; }
+        .color-after .status-title { color: #c0392b; }
+        .color-closed { background-color: #f7f9fa; }
+        .color-closed .status-title { color: #7f8c8d; }
+        .color-weekend { background-color: #fef9e7; }
+        .color-weekend .status-title { color: #d35400; }
     </style>
 </head>
 <body>
@@ -54,33 +58,32 @@
 
     <div id="beforeArea" class="status-box color-before">
         <div class="status-icon">⏳</div>
-        <div class="status-title" style="color: #2980b9;">출석체크 대기 중</div>
+        <div class="status-title">출석체크 대기 중</div>
         <div class="status-desc">야간자율학습 출석체크 시작 전입니다.<br><b>오후 6시 20분</b>부터 등록할 수 있습니다.</div>
     </div>
 
     <div id="afterArea" class="status-box color-after">
         <div class="status-icon">⏰</div>
-        <div class="status-title" style="color: #c0392b;">출석체크 시간 종료</div>
+        <div class="status-title">출석체크 시간 종료</div>
         <div class="status-desc">오늘 자율학습 출석인정 시간이 종료되었습니다.<br>(출석 가능 시간: 18:20 ~ 18:50)</div>
     </div>
 
     <div id="closedArea" class="status-box color-closed">
         <div class="status-icon">🔒</div>
-        <div class="status-title" style="color: #7f8c8d;">출석 마감 완료</div>
-        <div class="status-desc">선생님께서 출석체크를 최종 마감 처리하셨습니다.<br>지금부터는 추가 등록이 불가능합니다.</div>
+        <div class="status-title">출석 마감 완료</div>
+        <div class="status-desc">출석체크가 마감 처리되었습니다.<br>지금부터는 추가 등록이 불가능합니다.</div>
     </div>
 
-    <!-- 💡 주말 전용 안내 상자 추가 -->
     <div id="weekendArea" class="status-box color-weekend">
         <div class="status-icon">🏡</div>
-        <div class="status-title" style="color: #d35400;">주말 출석체크 비활성화</div>
+        <div class="status-title">주말 출석체크 비활성화</div>
         <div class="status-desc">오늘은 주말입니다.<br>야간자율학습 출석체크를 진행하지 않습니다.</div>
     </div>
 </div>
 
 <script>
-    // 💡 1. 구글 웹 앱 URL 주소 입력 (새 배포 URL 필수!)
-    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycby-N7Hs3HZu9uH4PtQd3fd1qJYPfhFYDroCD9ByzA_a-kpLWsoJzqxKzvlfMCYQCoBv/exec";
+    // 💡 1. 구글 웹 앱 URL 주소 입력
+    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwvf-h5krlj1Gi3-Ty_SgLrGWn5u4ojOxnCWO2ziEyZM_moIquIUBIcKq3G89Hq9PI4/exec";
 
     // 💡 2. 관리자 마감 비밀번호
     const ADMIN_PASSWORD = "admin1234";
@@ -88,7 +91,7 @@
     let currentStudents = [];
     let todayDay = "월"; 
     let todayDateStr = "";
-    let isWeekend = false; // 💡 주말 여부 플래그 추가
+    let isWeekend = false;
 
     window.onload = function() {
         determineTodayDay();
@@ -101,34 +104,24 @@
         const dayIdx = now.getDay();
         const dayName = days[dayIdx];
         
-        // 주말(토, 일) 판별 로직 수정
-        if (dayIdx === 0 || dayIdx === 6) {
-            isWeekend = true;
-            todayDay = dayName;
-        } else {
-            isWeekend = false;
-            todayDay = dayName;
-        }
-        
+        isWeekend = (dayIdx === 0 || dayIdx === 6);
+        todayDay = dayName;
         todayDateStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
         
         document.getElementById("mainTitle").innerText = `🌙 야간자율학습 셀프 출석체크 (${todayDay}요일)`;
     }
 
-    // 시간 검사 및 학생 목록 로드
     function checkTimeAndFetchStudents() {
         const inputField = document.getElementById("studentInput");
         const btn = document.getElementById("submitCheckBtn");
         const loading = document.getElementById("loadingMessage");
 
-        // 전체 화면 레이아웃 일단 숨김 처리 준비
         document.getElementById("activeArea").style.display = "none";
         document.getElementById("beforeArea").style.display = "none";
         document.getElementById("afterArea").style.display = "none";
         document.getElementById("closedArea").style.display = "none";
         document.getElementById("weekendArea").style.display = "none";
 
-        // 💡 주말인 경우 서버 요청을 보내지 않고 바로 주말 안내 창 표시
         if (isWeekend) {
             document.getElementById("weekendArea").style.display = "block";
             return;
@@ -147,7 +140,6 @@
                 return;
             }
 
-            // 서버 조건 판별에 따른 화면 분기 처리
             if (res.status === "TIME_BEFORE") {
                 document.getElementById("beforeArea").style.display = "block";
             } else if (res.status === "TIME_AFTER") {
@@ -155,14 +147,11 @@
             } else if (res.status === "ADMIN_CLOSED") {
                 document.getElementById("closedArea").style.display = "block";
             } else if (res.status === "OPEN") {
-                // 정상 오픈 상태
                 document.getElementById("activeArea").style.display = "block";
                 
                 currentStudents = res.students.map(s => ({
                     sno: s.sno,
-                    name: s.name,
-                    status: "결석",
-                    checkTime: ""
+                    name: s.name
                 }));
 
                 if (currentStudents.length === 0) {
@@ -185,63 +174,88 @@
 
     function checkByStudent() {
         const inputField = document.getElementById("studentInput");
+        const btn = document.getElementById("submitCheckBtn");
         const val = inputField.value.trim();
 
         if (!val) return;
 
+        // 🔒 관리자 마감 번호 입력 시 화면 잠금 처리 기능 유지
         if (val === ADMIN_PASSWORD) {
-            if(confirm("🔒 출석을 마감하시겠습니까?\n미입력자는 모두 결석(파란색) 처리되며 오늘 출석창이 잠깁니다.")) {
-                submitToGoogleSheet();
+            if(confirm("🔒 출석 화면을 마감 상태로 전환하시겠습니까?\n(이미 실시간 전송 중이므로 화면 접근만 차단됩니다.)")) {
+                sendCloseSignalToSheet();
             }
             inputField.value = "";
             inputField.focus();
             return;
         }
 
-        let found = false;
-        const now = new Date();
-        const timeStr = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
-
+        let targetStudent = null;
         currentStudents.forEach((student) => {
             const snoStr = student.sno ? student.sno.toString().trim() : "";
             const nameStr = student.name ? student.name.toString().trim() : "";
-
             if (val === snoStr || val === nameStr) {
-                if (student.status === "출석") {
-                    alert(`⚠️ [${student.name}] 학생은 이미 출석이 완료되었습니다.`);
-                } else {
-                    student.status = "출석";
-                    student.checkTime = timeStr;
-                    alert(`✅ [${student.name}] 출석이 확인되었습니다.`);
-                }
-                found = true;
+                targetStudent = student;
             }
         });
 
-        if (!found) {
-            alert("⚠️ 명렬표에 없는 정보입니다. 다시 입력해 주세요.");
-        }
+        if (targetStudent) {
+            const now = new Date();
+            const timeStr = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+            
+            // 🚀 한 명만 즉시 시트로 전송하도록 입력창 일시 비활성화
+            inputField.disabled = true;
+            btn.disabled = true;
+            inputField.placeholder = "출석 데이터 전송 중...";
 
-        inputField.value = "";
-        inputField.focus();
+            const payload = {
+                type: "ATTENDANCE", // 단일 출석 타입 신호
+                day: todayDay,
+                date: todayDateStr,
+                time: timeStr,
+                student: {
+                    sno: targetStudent.sno,
+                    name: targetStudent.name,
+                    status: "출석",
+                    checkTime: timeStr
+                }
+            };
+
+            fetch(WEB_APP_URL, {
+                method: "POST",
+                mode: "no-cors",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            })
+            .then(() => {
+                alert(`✅ [${targetStudent.name}] 출석이 확인되어 시트에 기록되었습니다.`);
+                inputField.disabled = false;
+                btn.disabled = false;
+                inputField.placeholder = "학번 또는 이름 입력";
+                inputField.value = "";
+                inputField.focus();
+            })
+            .catch(error => {
+                alert("전송 실패! 인터넷 연결을 확인하세요: " + error);
+                inputField.disabled = false;
+                btn.disabled = false;
+                inputField.placeholder = "학번 또는 이름 입력";
+                inputField.focus();
+            });
+
+        } else {
+            alert("⚠️ 명렬표에 없는 정보입니다. 다시 입력해 주세요.");
+            inputField.value = "";
+            inputField.focus();
+        }
     }
 
-    function submitToGoogleSheet() {
-        const inputField = document.getElementById("studentInput");
-        const btn = document.getElementById("submitCheckBtn");
-        
-        const now = new Date();
-        const timeStr = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
-
+    // 관리자가 강제로 마감 신호를 보낼 때 사용하는 함수
+    function sendCloseSignalToSheet() {
         const payload = {
+            type: "CLOSE_SYSTEM", // 시스템 마감 타입 신호
             day: todayDay,
-            date: todayDateStr,
-            time: timeStr, 
-            students: currentStudents
+            date: todayDateStr
         };
-
-        inputField.disabled = true;
-        btn.disabled = true;
 
         fetch(WEB_APP_URL, {
             method: "POST",
@@ -250,13 +264,11 @@
             body: JSON.stringify(payload)
         })
         .then(() => {
-            alert(`🎉 최종 마감 처리가 완료되었습니다.`);
-            location.reload(); 
+            alert(`🎉 시스템 마감 처리가 완료되었습니다.`);
+            location.reload();
         })
         .catch(error => {
-            alert("전송 실패: " + error);
-            inputField.disabled = false;
-            btn.disabled = false;
+            alert("마감 처리 실패: " + error);
         });
     }
 </script>
