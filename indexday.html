@@ -22,13 +22,11 @@
         .info-text { margin-top: 15px; font-size: 13px; color: #95a5a6; text-align: center; }
         .loading-overlay { display: none; text-align: center; color: #3498db; font-weight: bold; font-size: 16px; margin-top: 15px; }
         
-        /* 🔒 상태별 안내 상자 공통 스타일 */
         .status-box { display: none; padding: 25px; border-radius: 8px; border: 2px dashed #cbd5e0; margin-top: 10px; }
         .status-icon { font-size: 50px; margin-bottom: 12px; }
         .status-title { font-size: 20px; font-weight: bold; margin-bottom: 8px; }
         .status-desc { font-size: 15px; color: #4a5568; line-height: 1.5; }
         
-        /* 개별 상태 커스텀 컬러 */
         .color-before { background-color: #eaf2f8; }
         .color-before .status-title { color: #2980b9; }
         .color-after { background-color: #fdf2f2; }
@@ -82,10 +80,8 @@
 </div>
 
 <script>
-    // 💡 구글 웹 앱 URL 주소 입력 (새 배포 후 새로 발급받은 주소로 교체 필수!)
-    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxERrArvEyOypHmK1-Vhg5zAFDRNZfPBZO_gYHu7gR0GHLFhNJK_ZreUNbctaGSa6M/exec";
-
-    // 💡 관리자 마감 비밀번호
+    // 💡 구글 웹 앱 URL 주소 입력 (새 배포 버전 필수!)
+    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxCwlLUDLiusyUtvlZsvMSV19sQeb-6KMq9ziZdTu5YtyWk26OoZgAy4JR7BoDGPAMh/exec";
     const ADMIN_PASSWORD = "admin1234";
 
     let currentStudents = [];
@@ -155,7 +151,7 @@
                 }));
 
                 if (currentStudents.length === 0) {
-                    inputField.placeholder = `오늘 명렬표 등록 인원이 없습니다.`;
+                    inputField.placeholder = `오늘 대기 중인 미출석 인원이 없습니다.`;
                 } else {
                     inputField.placeholder = "학번 또는 이름 입력";
                     inputField.disabled = false;
@@ -180,7 +176,7 @@
         if (!val) return;
 
         if (val === ADMIN_PASSWORD) {
-            if(confirm("🔒 출석 화면을 마감 상태로 전환하시겠습니까?\n(이미 실시간 전송 중이므로 화면 접근만 차단됩니다.)")) {
+            if(confirm("🔒 출석 화면을 마감 상태로 전환하시겠습니까?")) {
                 sendCloseSignalToSheet();
             }
             inputField.value = "";
@@ -189,13 +185,18 @@
         }
 
         let targetStudent = null;
-        currentStudents.forEach((student) => {
-            const snoStr = student.sno ? student.sno.toString().trim() : "";
-            const nameStr = student.name ? student.name.toString().trim() : "";
+        let targetIdx = -1;
+
+        // 대기 명단에서 입력값과 일치하는 학생 매칭
+        for (let i = 0; i < currentStudents.length; i++) {
+            const snoStr = currentStudents[i].sno ? currentStudents[i].sno.toString().trim() : "";
+            const nameStr = currentStudents[i].name ? currentStudents[i].name.toString().trim() : "";
             if (val === snoStr || val === nameStr) {
-                targetStudent = student;
+                targetStudent = currentStudents[i];
+                targetIdx = i;
+                break;
             }
-        });
+        }
 
         if (targetStudent) {
             const now = new Date();
@@ -209,11 +210,9 @@
                 type: "ATTENDANCE", 
                 day: todayDay,
                 date: todayDateStr,
-                time: timeStr,
                 student: {
                     sno: targetStudent.sno,
                     name: targetStudent.name,
-                    status: "출석",
                     checkTime: timeStr
                 }
             };
@@ -226,9 +225,13 @@
             })
             .then(() => {
                 alert(`✅ [${targetStudent.name}] 출석이 확인되어 시트에 기록되었습니다.`);
+                
+                // 💡 [핵심] 출석 성공 시 로컬 대기 명단에서 해당 학생을 즉시 제외합니다 (중복 방지)
+                currentStudents.splice(targetIdx, 1);
+
                 inputField.disabled = false;
                 btn.disabled = false;
-                inputField.placeholder = "학번 또는 이름 입력";
+                inputField.placeholder = currentStudents.length === 0 ? "오늘 모든 인원 출석 완료" : "학번 또는 이름 입력";
                 inputField.value = "";
                 inputField.focus();
             })
@@ -241,7 +244,7 @@
             });
 
         } else {
-            alert("⚠️ 명렬표에 없는 정보입니다. 다시 입력해 주세요.");
+            alert("⚠️ 명렬표에 없거나 이미 출석체크가 완료된 정보입니다.");
             inputField.value = "";
             inputField.focus();
         }
