@@ -53,7 +53,7 @@
             </div>
         </div>
         <div id="loadingMessage" class="loading-overlay">구글 시트 연동 및 제한 시간 검사 중...</div>
-        <div class="info-text">※ 출석 인정 시간: 18:20 ~ 18:50 (시간 외 등록 불가)</div>
+        <div class="info-text">※ 출석 인정 시간: 18:20 ~ 19:00 (시간 외 등록 불가)</div>
     </div>
 
     <div id="beforeArea" class="status-box color-before">
@@ -65,7 +65,7 @@
     <div id="afterArea" class="status-box color-after">
         <div class="status-icon">⏰</div>
         <div class="status-title">출석체크 시간 종료</div>
-        <div class="status-desc">오늘 자율학습 출석인정 시간이 종료되었습니다.<br>(출석 가능 시간: 18:20 ~ 18:50)</div>
+        <div class="status-desc">오늘 자율학습 출석인정 시간이 종료되었습니다.<br>(출석 가능 시간: 18:20 ~ 19:00)</div>
     </div>
 
     <div id="closedArea" class="status-box color-closed">
@@ -82,10 +82,10 @@
 </div>
 
 <script>
-    // 💡 1. 구글 웹 앱 URL 주소 입력
-    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwvf-h5krlj1Gi3-Ty_SgLrGWn5u4ojOxnCWO2ziEyZM_moIquIUBIcKq3G89Hq9PI4/exec";
+    // 💡 구글 웹 앱 URL 주소 입력 (새 배포 후 새로 발급받은 주소로 넣으세요!)
+    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycby-N7Hs3HZu9uH4PtQd3fd1qJYPfhFYDroCD9ByzA_a-kpLWsoJzqxKzvlfMCYQCoBv/exec";
 
-    // 💡 2. 관리자 마감 비밀번호
+    // 💡 관리자 마감 비밀번호
     const ADMIN_PASSWORD = "admin1234";
 
     let currentStudents = [];
@@ -179,7 +179,6 @@
 
         if (!val) return;
 
-        // 🔒 관리자 마감 번호 입력 시 화면 잠금 처리 기능 유지
         if (val === ADMIN_PASSWORD) {
             if(confirm("🔒 출석 화면을 마감 상태로 전환하시겠습니까?\n(이미 실시간 전송 중이므로 화면 접근만 차단됩니다.)")) {
                 sendCloseSignalToSheet();
@@ -202,13 +201,12 @@
             const now = new Date();
             const timeStr = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
             
-            // 🚀 한 명만 즉시 시트로 전송하도록 입력창 일시 비활성화
             inputField.disabled = true;
             btn.disabled = true;
             inputField.placeholder = "출석 데이터 전송 중...";
 
             const payload = {
-                type: "ATTENDANCE", // 단일 출석 타입 신호
+                type: "ATTENDANCE", 
                 day: todayDay,
                 date: todayDateStr,
                 time: timeStr,
@@ -249,10 +247,9 @@
         }
     }
 
-    // 관리자가 강제로 마감 신호를 보낼 때 사용하는 함수
     function sendCloseSignalToSheet() {
         const payload = {
-            type: "CLOSE_SYSTEM", // 시스템 마감 타입 신호
+            type: "CLOSE_SYSTEM", 
             day: todayDay,
             date: todayDateStr
         };
