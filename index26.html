@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MediSync - 100종 의약품 상호작용 필터링 시스템</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* 스크롤바 커스텀 */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen font-sans antialiased">
+
+    <header class="bg-emerald-600 text-white shadow-md sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <i class="fa-solid fa-laptop-medical text-3xl"></i>
+                <div>
+                    <h1 class="text-xl font-bold tracking-wide">MediSync</h1>
+                    <p class="text-xs text-emerald-100">의약품 데이터 기반 안전 필터링 시스템</p>
+                </div>
+            </div>
+            <div class="text-xs bg-emerald-700 px-3.5 py-1.5 rounded-full border border-emerald-500 font-semibold">
+                <i class="fa-solid fa-database mr-1"></i> 100종 데이터베이스 로드됨
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-6 py-8">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            
+            <div class="lg:col-span-7 space-y-6">
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                    <h2 class="text-lg font-bold mb-4 flex items-center gap-2 text-slate-800">
+                        <i class="fa-solid fa-magnifying-glass text-emerald-600"></i> 의약품 검색 및 등록
+                    </h2>
+                    <div class="relative">
+                        <input type="text" id="searchInput" placeholder="약물 명칭, 카테고리, 부작용을 입력하세요... (예: 아스피린, 고혈압)" 
+                            class="w-full pl-11 pr-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all text-sm"
+                            oninput="filterDrugs()">
+                        <span class="absolute left-4 top-3.5 text-slate-400">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                        </span>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+                    <div class="p-4 bg-slate-50 border-b border-slate-100 flex justify-between items-center">
+                        <span class="text-sm font-semibold text-slate-600">의약품 목록 (<span id="resultCount" class="text-emerald-600">0</span>)</span>
+                        <span class="text-xs text-slate-400">우측 [+] 버튼으로 내 약 상자에 추가하세요.</span>
+                    </div>
+                    <div id="drugList" class="divide-y divide-slate-100 max-h-[600px] overflow-y-auto">
+                        </div>
+                </div>
+            </div>
+
+            <div class="lg:col-span-5 space-y-6">
+                
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                    <h2 class="text-lg font-bold mb-4 flex items-center justify-between">
+                        <span class="flex items-center gap-2 text-slate-800">
+                            <i class="fa-solid fa-prescription-bottle-medical text-emerald-600"></i> 내 약 상자
+                        </span>
+                        <span id="myMedCount" class="bg-slate-100 text-slate-600 px-2.5 py-0.5 rounded-full text-xs font-semibold">0개</span>
+                    </h2>
+
+                    <div id="myMedsContainer" class="space-y-3 min-h-[120px] flex flex-col justify-center">
+                        </div>
+                </div>
+
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                    <h2 class="text-lg font-bold mb-4 flex items-center gap-2 text-slate-800">
+                        <i class="fa-solid fa-triangle-exclamation text-amber-500"></i> 실시간 병용금기 분석 결과
+                    </h2>
+                    
+                    <div id="analysisContainer" class="space-y-3">
+                        </div>
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+    <footer class="bg-slate-800 text-slate-400 py-8 mt-16 border-t border-slate-700">
+        <div class="max-w-7xl mx-auto px-6 text-center text-sm space-y-2">
+            <p class="font-semibold text-slate-300">MediSync Medical Filtering Engine</p>
+            <p class="text-xs leading-relaxed text-slate-500">본 대화형 웹은 학습 및 탐구용 데이터베이스 시뮬레이터입니다. 실제 약물 복용 시에는 반드시 담당 의사 및 약사와 상의해야 합니다.</p>
+        </div>
+    </footer>
+
+    <script>
+        // 임상 가이드 기반 100가지 종합 의약품 데이터셋
+        const drugDatabase = [
+          { id: 1, name: "아토르바스타틴 (Atorvastatin)", category: "이상지질혈증 치료제", timing: "저녁 식후 또는 취침 전", dosage: "10-80mg 1일 1회", interactions: ["자몽주스", "클라리스로마이신"], sideEffects: ["근육통", "간기능 수치 상승"], contraindications: ["임산부", "활동성 간질환자"] },
+          { id: 2, name: "로수바스타틴 (Rosuvastatin)", category: "이상지질혈증 치료제", timing: "시간 무관 식후", dosage: "5-20mg 1일 1회", interactions: ["사이클로스포린", "항응고제"], sideEffects: ["근육통", "당뇨 위험 증가"], contraindications: ["임산부", "활동성 간질환자"] },
+          { id: 3, name: "암로디핀 (Amlodipine)", category: "고혈압 치료제 (CCB)", timing: "아침 식후", dosage: "5-10mg 1일 1회", interactions: ["자몽주스", "심바스타틴"], sideEffects: ["말초 부종", "안면 홍조", "두통"], contraindications: ["중증 대동맥판막협착증"] },
+          { id: 4, name: "로사르탄 (Losartan)", category: "고혈압 치료제 (ARB)", timing: "아침 식후", dosage: "50-100mg 1일 1회", interactions: ["칼륨 보충제", "NSAIDs"], sideEffects: ["어지러움", "고칼륨혈증"], contraindications: ["임산부", "중증 간장애"] },
+          { id: 5, name: "발사르탄 (Valsartan)", category: "고혈압 치료제 (ARB)", timing: "아침 식후", dosage: "80-160mg 1일 1회", interactions: ["칼륨 보충제", "리튬"], sideEffects: ["기립성 저혈압", "피로"], contraindications: ["임산부", "중증 간장애"] },
+          { id: 6, name: "텔미사르탄 (Telmisartan)", category: "고혈압 치료제 (ARB)", timing: "아침 식후", dosage: "40-80mg 1일 1회", interactions: ["디곡신", "NSAIDs"], sideEffects: ["상기도 감염 증상", "설사"], contraindications: ["임산부", "폐쇄성 담도질환"] },
+          { id: 7, name: "카르베디롤 (Carvedilol)", category: "고혈압/심부전 치료제 (β-차단제)", timing: "아침/저녁 식후", dosage: "3.125-25mg 1일 2회", interactions: ["인슐린", "아미오다론"], sideEffects: ["서맥", "어지러움", "피로"], contraindications: ["천식 환자", "심한 서맥"] },
+          { id: 8, name: "비소프롤롤 (Bisoprolol)", category: "고혈압/심부전 치료제 (β-차단제)", timing: "아침 식후", dosage: "2.5-10mg 1일 1회", interactions: ["칼슘차단제", "클로니딘"], sideEffects: ["서맥", "사지 냉감"], contraindications: ["급성 심부전", "천식 환자"] },
+          { id: 9, name: "네비볼롤 (Nebivolol)", category: "고혈압 치료제 (β-차단제)", timing: "시간 무관 식후", dosage: "5mg 1일 1회", interactions: ["플루오세틴", "시메티딘"], sideEffects: ["두통", "현기증", "피로"], contraindications: ["중증 간기능 장애", "천식 환자"] },
+          { id: 10, name: "아스피린 (Aspirin 100mg)", category: "항혈소판제", timing: "아침 식후 즉시", dosage: "100mg 1일 1회", interactions: ["항응고제", "NSAIDs"], sideEffects: ["위장관 출혈", "소화불량"], contraindications: ["활동성 소화성궤양", "출혈성 소인"] },
+          { id: 11, name: "클로피도그렐 (Clopidogrel)", category: "항혈소판제", timing: "시간 무관 식후", dosage: "75mg 1일 1회", interactions: ["오메프라졸", "NSAIDs"], sideEffects: ["출혈", "멍", "위장장애"], contraindications: ["활동성 출혈(궤양, 뇌출혈)"] },
+          { id: 12, name: "리바록사반 (Rivaroxaban)", category: "항응고제 (NOAC)", timing: "일정 시간 식후", dosage: "10-20mg 1일 1회", interactions: ["케토코나졸", "리팜핀"], sideEffects: ["출혈 빈도 증가", "빈혈"], contraindications: ["임산부", "활동성 출혈 환자"] },
+          { id: 13, name: "아피사반 (Apixaban)", category: "항응고제 (NOAC)", timing: "일정 시간 식후", dosage: "2.5-5mg 1일 2회", interactions: ["이트라코나졸", "리팜핀"], sideEffects: ["출혈", "코피", "메스꺼움"], contraindications: ["임산부", "임상적으로 유의한 출혈"] },
+          { id: 14, name: "와파린 (Warfarin)", category: "항응고제", timing: "일정 시간 식후", dosage: "2-5mg (INR 모니터링)", interactions: ["비타민 K 식품", "대부분의 항생제"], sideEffects: ["심각한 출혈", "피부 괴사"], contraindications: ["임산부", "출혈 가능성이 높은 환자"] },
+          { id: 15, name: "페린도프릴 (Perindopril)", category: "고혈압 치료제 (ACE저해제)", timing: "아침 식전", dosage: "4-8mg 1일 1회", interactions: ["칼륨 보충제", "리튬"], sideEffects: ["마른 기침", "고칼륨혈증"], contraindications: ["임산부", "혈관부종 기왕력자"] },
+          { id: 16, name: "라미프릴 (Ramipril)", category: "고혈압 치료제 (ACE저해제)", timing: "아침 식후", dosage: "2.5-10mg 1일 1회", interactions: ["NSAIDs", "알로푸리놀"], sideEffects: ["마른 기침", "어지러움"], contraindications: ["임산부", "혈관부종 기왕력자"] },
+          { id: 17, name: "도라사미드 (Torasemide)", category: "이뇨제 (Loop 계열)", timing: "아침 식후", dosage: "5-10mg 1일 1회", interactions: ["디곡신", "아미노글리코사이드"], sideEffects: ["저칼륨혈증", "탈수", "빈뇨"], contraindications: ["무뇨증 환자", "저혈압 환자"] },
+          { id: 18, name: "푸로세미드 (Furosemide)", category: "이뇨제 (Loop 계열)", timing: "아침 식후", dosage: "20-40mg 1일 1회", interactions: ["NSAIDs", "리튬"], sideEffects: ["저나트륨혈증", "고요산혈증", "탈수"], contraindications: ["무뇨 환자", "심한 전해질 결핍"] },
+          { id: 19, name: "스피로노락톤 (Spironolactone)", category: "칼륨보존성 이뇨제", timing: "아침 식후", dosage: "25-100mg 1일 1~2회", interactions: ["ACE저해제", "칼륨 보충제"], sideEffects: ["고칼륨혈증", "여성형 유방"], contraindications: ["무뇨", "급성 신부전", "고칼륨혈증"] },
+          { id: 20, name: "이소소르비드 질산염 (Isosorbide Dinitrate)", category: "협심증 치료제 (질산염계)", timing: "식후 또는 발작 시 설하 투여", dosage: "10-40mg 1일 2~3회", interactions: ["실데나필"], sideEffects: ["심한 두통", "안면 홍조", "기립성 저혈압"], contraindications: ["중증 저혈압 환자", "발기부전 치료제 복용자"] },
+          { id: 21, name: "메트포르민 (Metformin)", category: "당뇨병 치료제 (Biguanide)", timing: "아침/저녁 식사 직후 또는 식사 중", dosage: "500-2000mg 1일 1~2회", interactions: ["요오드성 조영제", "알코올"], sideEffects: ["설사", "복부 팽만감", "젖산산증"], contraindications: ["중증 신장애 (eGFR < 30)", "급성 대사성 산증"] },
+          { id: 22, name: "글리메피리드 (Glimepiride)", category: "당뇨병 치료제 (Sulfonylurea)", timing: "아침 식사 직전 또는 첫 식사 중", dosage: "1-6mg 1일 1회", interactions: ["NSAIDs", "β-차단제"], sideEffects: ["저혈당", "체중 증가"], contraindications: ["제1형 당뇨병", "당뇨병성 케토산증"] },
+          { id: 23, name: "시타글립틴 (Sitagliptin)", category: "당뇨병 치료제 (DPP-4 억제제)", timing: "시간 무관 식후", dosage: "100mg 1일 1회", interactions: ["디곡신"], sideEffects: ["비인두염", "두통", "드물게 췌장염"], contraindications: ["이 약에 과민증이 있는 환자"] },
+          { id: 24, name: "리나글립틴 (Linagliptin)", category: "당뇨병 치료제 (DPP-4 억제제)", timing: "시간 무관 식후", dosage: "5mg 1일 1회", interactions: ["리팜핀"], sideEffects: ["저혈당(병용 시)", "기침"], contraindications: ["제1형 당뇨병", "당뇨병성 케토산증"] },
+          { id: 25, name: "엠파글리플로진 (Empagliflozin)", category: "당뇨병 치료제 (SGLT-2 억제제)", timing: "아침 식사 무관", dosage: "10-25mg 1일 1회", interactions: ["이뇨제", "인슐린"], sideEffects: ["요로감염", "생식기 진균감염", "탈수"], contraindications: ["중증 신장애 상태의 혈당 조절 목적"] },
+          { id: 26, name: "다파글리플로진 (Dapagliflozin)", category: "당뇨병 치료제 (SGLT-2 억제제)", timing: "아침 식사 무관", dosage: "10mg 1일 1회", interactions: ["이뇨제"], sideEffects: ["배뇨 증가", "체중 감소", "요로감염"], contraindications: ["투석 환자"] },
+          { id: 27, name: "피오글리타존 (Pioglitazone)", category: "당뇨병 치료제 (Thiazolidinedione)", timing: "시간 무관 식후", dosage: "15-30mg 1일 1회", interactions: ["인슐린"], sideEffects: ["부종", "체중 증가", "골절 위험 상승"], contraindications: ["심부전 환자", "활동성 방광암 환자"] },
+          { id: 28, name: "레보티록신 (Levothyroxine)", category: "갑상선호르몬제", timing: "아침 기상 직후 공복 (식전 30분~1시간)", dosage: "25-150mcg 1일 1회", interactions: ["칼슘/철분제", "제산제"], sideEffects: ["두근거림", "불면", "체중 감소"], contraindications: ["치료되지 않은 부신부전증 환자"] },
+          { id: 29, name: "메티마졸 (Methimazole)", category: "항갑상선제", timing: "일정 시간 식후", dosage: "5-30mg 1일 1~3회 분할", interactions: ["항응고제"], sideEffects: ["무과립구증", "피부 소양증"], contraindications: ["중증 혈액 장애 환자"] },
+          { id: 30, name: "알로푸리놀 (Allopurinol)", category: "통풍 치료제", timing: "식후 즉시 (충분한 물과 함께)", dosage: "100-300mg 1일 1~3회", interactions: ["아자시오프린", "항응고제"], sideEffects: ["중증 피부부작용 (SJS)", "위장장애"], contraindications: ["이 약에 심각한 과민증 기왕력자"] },
+          { id: 31, name: "페부조스타트 (Febuxostat)", category: "통풍 치료제", timing: "식사 무관 일정 시간", dosage: "40-80mg 1일 1회", interactions: ["아자시오프린", "테오필린"], sideEffects: ["간기능 수치 이상", "발진", "관절통"], contraindications: ["아자시오프린 복용자"] },
+          { id: 32, name: "알렌드로네이트 (Alendronate)", category: "골다공증 치료제 (Bisphosphonate)", timing: "기상 직후 공복 (맹물과 복용, 30분간 눕지 않기)", dosage: "70mg 1주 1회", interactions: ["칼슘제", "제산제"], sideEffects: ["식도염", "식도궤양", "턱뼈 괴사"], contraindications: ["식도 협착 환자", "30분 이상 서 있거나 앉지 못하는 환자"] },
+          { id: 33, name: "리세드로네이트 (Risedronate)", category: "골다공증 치료제 (Bisphosphonate)", timing: "기상 직후 공복 (복용 후 30분간 눕지 않기)", dosage: "35mg 1주 1회", interactions: ["칼슘제", "철분 보충제"], sideEffects: ["위장장애", "뼈/근육통"], contraindications: ["중증 신장애", "저칼슘혈증 환자"] },
+          { id: 34, name: "랄로시펜 (Raloxifene)", category: "골다공증 치료제 (SERM계열)", timing: "시간 무관 식후", dosage: "60mg 1일 1회", interactions: ["콜레스티라민", "와파린"], sideEffects: ["안면 홍조", "다리 쥐남", "정맥혈전색전증 위험"], contraindications: ["정맥혈전색전증 환자", "가임기 여성"] },
+          { id: 35, name: "데노수맙 (Denosumab)", category: "골다공증 치료제 (단클론항체)", timing: "6개월에 1회 피하주사", dosage: "60mg 6개월 당 1회", interactions: ["면역억제제"], sideEffects: ["저칼슘혈증", "피부염"], contraindications: ["저칼슘혈증 환자", "임산부"] },
+          { id: 36, name: "아세트아미노펜 (Acetaminophen)", category: "해열진통제", timing: "식사 무관 복용 가능", dosage: "500-1000mg 1일 3~4회 (최대 4000mg)", interactions: ["알코올"], sideEffects: ["간독성 (과량 투여 시)", "피부 발진"], contraindications: ["중증 간기능 장애 환자"] },
+          { id: 37, name: "이부프로펜 (Ibuprofen)", category: "해열소염진통제 (NSAIDs)", timing: "식후 즉시 (위장 장애 예방)", dosage: "200-400mg 1일 3~4회", interactions: ["아스피린", "항응고제", "이뇨제"], sideEffects: ["속쓰림", "위궤양", "신장 기능 저하"], contraindications: ["활동성 소화성궤양 환자", "아스피린 천식 환자"] },
+          { id: 38, name: "덱시부프로펜 (Dexibuprofen)", category: "해열소염진통제 (NSAIDs)", timing: "식후 즉시", dosage: "300-400mg 1일 2~3회", interactions: ["다른 NSAIDs", "메토트렉세이트"], sideEffects: ["위통", "소화불량", "부종"], contraindications: ["심한 심부전 환자", "위장관 출혈 환자"] },
+          { id: 39, name: "록소프로펜 (Loxoprofen)", category: "해열소염진통제 (NSAIDs)", timing: "식후 즉시", dosage: "60mg 1일 3회", interactions: ["뉴퀴놀론계 항생제"], sideEffects: ["복통", "구역", "발진"], contraindications: ["중증 혈액 이상 환자", "소화성 궤양 환자"] },
+          { id: 40, name: "세레콕시브 (Celecoxib)", category: "소염진통제 (COX-2 선택적 억제제)", timing: "식사 무관 식후", dosage: "100-200mg 1일 1~2회", interactions: ["와파린", "플루코나졸"], sideEffects: ["위장관 부작용은 적으나 심혈관 위험 가능성", "말초부종"], contraindications: ["설폰아미드 과민증 환자", "관상동맥 우회로술 전후 통증"] },
+          { id: 41, name: "멜록시캄 (Meloxicam)", category: "소염진통제 (NSAIDs)", timing: "식후 즉시", dosage: "7.5-15mg 1일 1회", interactions: ["이뇨제", "사이클로스포린"], sideEffects: ["소화불량", "어지러움", "부종"], contraindications: ["중증 간장애", "중증 신장애"] },
+          { id: 42, name: "나프록센 (Naproxen)", category: "소염진통제 (NSAIDs)", timing: "식후 즉시 (충분한 물과 복용)", dosage: "250-500mg 1일 2회", interactions: ["리튬", "항혈소판제"], sideEffects: ["속쓰림", "두통", "졸음"], contraindications: ["아스피린 천식 기왕력자"] },
+          { id: 43, name: "디클로페낙 (Diclofenac)", category: "소염진통제 (NSAIDs)", timing: "식후 즉시", dosage: "25-50mg 1일 2~3회", interactions: ["디곡신", "사이클로스포린"], sideEffects: ["간수치 상승", "소화성 궤양"], contraindications: ["허혈성 심장질환자", "말초동맥질환자"] },
+          { id: 44, name: "트라마돌 (Tramadol)", category: "중추성 진통제", timing: "식사 무관 복용", dosage: "50mg 1일 2~4회", interactions: ["SSRI 항우울제", "SNRI 항우울제"], sideEffects: ["구역/구토", "변비", "어지러움", "졸음"], contraindications: ["급성 알코올/수면제 중독 환자"] },
+          { id: 45, name: "에페리손 (Eperisone)", category: "골격근이완제", timing: "식후 즉시", dosage: "50mg 1일 3회", interactions: ["메토카르바몰"], sideEffects: ["졸음", "무기력", "위장장애"], contraindications: ["이 약에 중증 과민증 환자"] },
+          { id: 46, name: "아플로쿠알론 (Afloqualone)", category: "골격근이완제", timing: "식후 즉시", dosage: "20mg 1일 3회", interactions: ["중추신경억제제", "알코올"], sideEffects: ["강한 졸음", "어지러움", "비틀거림"], contraindications: ["운전이나 위험한 기계 조작 직전 복용 금지"] },
+          { id: 47, name: "티자니딘 (Tizanidine)", category: "골격근이완제", timing: "식사 무관 식후", dosage: "1-2mg 1일 3회", interactions: ["시프로플록사신"], sideEffects: ["저혈압", "입마름", "졸음"], contraindications: ["중증 간기능 장애 환자"] },
+          { id: 48, name: "메토카르바몰 (Methocarbamol)", category: "골격근이완제", timing: "식후 즉시", dosage: "250-500mg 1일 3~4회", interactions: ["중추신경억제제"], sideEffects: ["졸음", "현기증", "소화불량"], contraindications: ["혼수 또는 반혼수 상태 환자"] },
+          { id: 49, name: "프레가발린 (Pregabalin)", category: "신경병증성 통증/항경련제", timing: "식사 무관 아침/저녁 일정 시간", dosage: "75-150mg 1일 2회", interactions: ["로라제팜", "알코올"], sideEffects: ["어지러움", "졸음", "체중 증가", "말초 부종"], contraindications: ["이 약에 과민증 환자"] },
+          { id: 50, name: "가바펜틴 (Gabapentin)", category: "신경병증성 통증/항경련제", timing: "식사 무관 1일 3회", interactions: ["제산제"], sideEffects: ["어지러움", "졸음", "피로"], contraindications: ["급성 췌장염 환자"] },
+          { id: 51, name: "오메프라졸 (Omeprazole)", category: "위산분비억제제 (PPI)", timing: "아침 식전 최소 30분~1시간 공복", dosage: "10-20mg 1일 1회", interactions: ["클로피도그렐", "이트라코나졸"], sideEffects: ["장기 복용 시 골절 위험", "설사"], contraindications: ["아타자나비르 복용자"] },
+          { id: 52, name: "에소메프라졸 (Esomeprazole)", category: "위산분비억제제 (PPI)", timing: "아침 식전 공복 복용 추천", dosage: "20-40mg 1일 1회", interactions: ["클로피도그렐", "실로스타졸"], sideEffects: ["복통", "복부 팽만감", "입마름"], contraindications: ["넬피나비르 복용자"] },
+          { id: 53, name: "란소프라졸 (Lansoprazole)", category: "위산분비억제제 (PPI)", timing: "아침 식전 공복", dosage: "15-30mg 1일 1회", interactions: ["타크로리무스", "테오필린"], sideEffects: ["변비 또는 설사", "발진"], contraindications: ["아타자나비르 투여 환자"] },
+          { id: 54, name: "판토프라졸 (Pantoprazole)", category: "위산분비억제제 (PPI)", timing: "아침 식전 공복", dosage: "20-40mg 1일 1회", interactions: ["와파린"], sideEffects: ["수면 장애", "어지러움"], contraindications: ["이 약의 과민증 환자"] },
+          { id: 55, name: "테고프라잔 (Tegoprazan)", category: "위산분비억제제 (P-CAB)", timing: "식사 여부 상관없이 복용 가능", dosage: "50mg 1일 1회", interactions: ["케토코나졸", "에를로티닙"], sideEffects: ["비인두염", "설사", "구역"], contraindications: ["임산부 및 수유부"] },
+          { id: 56, name: "펙수프라잔 (Fexuprazan)", category: "위산분비억제제 (P-CAB)", timing: "식사 여부 관계없이 복용", dosage: "40mg 1일 1회", interactions: ["케토코나졸"], sideEffects: ["소화불량", "설사"], contraindications: ["임산부 및 수유부"] },
+          { id: 57, name: "파모티딘 (Famotidine)", category: "위산분비억제제 (H2차단제)", timing: "식후 또는 취침 전", dosage: "10-20mg 1일 2회", interactions: ["아졸계 항진균제"], sideEffects: ["변비", "설사"], contraindications: ["이 약 과민증 환자"] },
+          { id: 58, name: "시메티딘 (Cimetidine)", category: "위산분비억제제 (H2차단제)", timing: "식후 및 취침 전", dosage: "200-400mg 1일 2~4회", interactions: ["와파린", "페니토인", "테오필린"], sideEffects: ["여성형 유방 (장기 복용 시)", "두통"], contraindications: ["이 약에 과민증 환자"] },
+          { id: 59, name: "레바미피드 (Rebamipide)", category: "위점막보호제", timing: "식후 1일 3회 및 취침 전", dosage: "100mg 1일 3회", interactions: [], sideEffects: ["복부 팽만감", "변비", "발진"], contraindications: ["이 약 성분에 과민증 환자"] },
+          { id: 60, name: "모사프리드 (Mosapride)", category: "위장관운동조절제", timing: "식전 또는 식후", dosage: "5mg 1일 3회", interactions: ["항콜린제"], sideEffects: ["설사", "연변", "구갈"], contraindications: ["이 약 성분에 과민증 환자"] },
+          { id: 61, name: "이토프리드 (Itopride)", category: "위장관운동조절제", timing: "식전 공복 복용", dosage: "50mg 1일 3회", interactions: ["항콜린제"], sideEffects: ["설사", "복통", "유즙 분비"], contraindications: ["위장관 출혈, 기계적 폐쇄 환자"] },
+          { id: 62, name: "메토클로프라미드 (Metoclopramide)", category: "진토제/위장관운동촉진제", timing: "식전 최소 30분 전 복용", dosage: "5-10mg 1일 3회", interactions: ["레보도파", "중추신경억제제"], sideEffects: ["추체외로 증상", "졸음"], contraindications: ["갈색세포종 환자", "위장관 천공/폐색 환자"] },
+          { id: 63, name: "알마게이트 (Almagate)", category: "제산제", timing: "식후 1~2시간 또는 필요 시", dosage: "500-1000mg 1일 3~4회", interactions: ["테트라사이클린계 항생제"], sideEffects: ["변비 또는 설사"], contraindications: ["유의한 전해질 이상 환자"] },
+          { id: 64, name: "도큐세이트 나트륨 (Docusate Sodium)", category: "하제 (변비약)", timing: "취침 전", dosage: "100mg 필요 시 복용", interactions: ["미네랄 오일"], sideEffects: ["복통", "설사", "오심"], contraindications: ["급성 복통 환자", "진단되지 않은 직장 출혈"] },
+          { id: 65, name: "락툴로오스 (Lactulose)", category: "삼투성 하제", timing: "아침 식전 공복", dosage: "10-20ml 1일 1회", interactions: ["제산제"], sideEffects: ["복부 팽만", "방귀", "설사"], contraindications: ["갈락토오스 혈증 환자", "장폐색 환자"] },
+          { id: 66, name: "세티리진 (Cetirizine)", category: "항히스타민제 (2세대)", timing: "저녁 식후 또는 취침 전", dosage: "10mg 1일 1회", interactions: ["알코올", "중추신경억제제"], sideEffects: ["졸음", "입마름", "피로감"], contraindications: ["중증 신장애 환자"] },
+          { id: 67, name: "레보세티리진 (Levocetirizine)", category: "항히스타민제 (2세대)", timing: "저녁 취침 전 복용 권장", dosage: "5mg 1일 1회", interactions: ["리토나비르"], sideEffects: ["졸음", "무기력증", "입안 건조"], contraindications: ["신장기능이 심하게 저하된 환자"] },
+          { id: 68, name: "페소페나딘 (Fexofenadine)", category: "항히스타민제 (3세대)", timing: "식사 무관 (과일주스 피하기)", dosage: "120-180mg 1일 1회", interactions: ["제산제"], sideEffects: ["두통", "구역"], contraindications: ["이 약 성분에 과민증 환자"] },
+          { id: 69, name: "로라타딘 (Loratadine)", category: "항히스타민제 (2세대)", timing: "시간 무관 식후", dosage: "10mg 1일 1회", interactions: ["케토코나졸", "에리스로마이신"], sideEffects: ["두통", "구갈"], contraindications: ["6세 미만의 소아"] },
+          { id: 70, name: "클로르페니라민 (Chlorpheniramine)", category: "항히스타민제 (1세대)", timing: "필요 시 복용", dosage: "2-4mg 1일 2~4회", interactions: ["MAO 억제제", "항콜린성 약물"], sideEffects: ["강한 졸음", "시야 흐림", "배뇨 장애"], contraindications: ["녹내장 환자", "전립선비대증 환자"] },
+          { id: 71, name: "몬테루카스트 (Montelukast)", category: "류코트리엔 수용체 길항제", timing: "저녁 시간대 일정하게 복용", dosage: "10mg 1일 1회", interactions: ["페노바르비탈"], sideEffects: ["악몽", "공격성", "두통"], contraindications: ["이 약에 과민증 환자"] },
+          { id: 72, name: "아세틸시스테인 (Acetylcysteine)", category: "진해거담제", timing: "식후 복용 (물 섭취 권장)", dosage: "200mg 1일 3회", interactions: ["경구 항생제"], sideEffects: ["구역", "소화불량"], contraindications: ["위·십이지장궤양 환자"] },
+          { id: 73, name: "에르도스테인 (Erdosteine)", category: "진해거담제", timing: "식후 복용", dosage: "300mg 1일 2~3회", interactions: [], sideEffects: ["위통", "두통", "미각 이상"], contraindications: ["중증 간장애/신장애 환자"] },
+          { id: 74, name: "암브록솔 (Ambroxol)", category: "진해거담제", timing: "식후 복용", dosage: "30mg 1일 3회", interactions: ["항생제"], sideEffects: ["소화관 경미한 증상", "알레르기 발진"], contraindications: ["이 약 과민증 환자"] },
+          { id: 75, name: "디히드로코데인 복합제 (Dihydrocodeine)", category: "진해거담제 (마약성 포함)", timing: "식후 1일 3~4회", dosage: "처방 용량 준수", interactions: ["중추신경억제제", "MAO 억제제"], sideEffects: ["졸음", "변비", "어지러움", "호흡 억제"], contraindications: ["12세 미만 소아", "수유부"] },
+          { id: 76, name: "알프라졸람 (Alprazolam)", category: "신경안정제 (벤조디아제핀계)", timing: "식후 또는 필요 시", dosage: "0.125-0.5mg 1일 3회", interactions: ["알코올", "이트라코나졸"], sideEffects: ["졸음", "정신의존성", "기억력 저하"], contraindications: ["급성 폐쇄각 녹내장 환자"] },
+          { id: 77, name: "디아제팜 (Diazepam)", category: "신경안정제 (벤조디아제핀계)", timing: "식후 또는 취침 전", dosage: "2-10mg 1일 2~4회", interactions: ["중추신경억제제", "시메티딘"], sideEffects: ["휘청거림", "졸음", "무기력"], contraindications: ["중증 호흡부전 환자"] },
+          { id: 78, name: "졸피뎀 (Zolpidem)", category: "수면제 (비벤조디아제핀계)", timing: "취침 직전", dosage: "5-10mg 취침 전 1회", interactions: ["알코올", "리팜핀"], sideEffects: ["몽유병", "다음날 졸음", "단기 기억상실"], contraindications: ["18세 미만 소아", "중증 호흡부전"] },
+          { id: 79, name: "에스시탈로프람 (Escitalopram)", category: "항우울제 (SSRI)", timing: "아침 또는 저녁 일정 시간", dosage: "10-20mg 1일 1회", interactions: ["MAO 억제제", "트라마돌"], sideEffects: ["구역", "성기능 장애", "불면 또는 졸음"], contraindications: ["MAO 억제제 복용 중인 환자"] },
+          { id: 80, name: "설트라린 (Sertraline)", category: "항우울제 (SSRI)", timing: "아침 또는 저녁 일정 시간", dosage: "50-200mg 1일 1회", interactions: ["피모짓", "MAO 억제제"], sideEffects: ["설사", "구역", "불면증"], contraindications: ["안정되지 않은 간질 환자"] },
+          { id: 81, name: "파록세틴 (Paroxetine)", category: "항우울제 (SSRI)", timing: "아침 식후 즉시", dosage: "20-50mg 1일 1회", interactions: ["피모짓", "타목시펜"], sideEffects: ["체중 증가", "졸음", "금단 증상"], contraindications: ["임산부"] },
+          { id: 82, name: "도네페질 (Donepezil)", category: "알츠하이머 치매 치료제", timing: "취침 전 복용", dosage: "5-10mg 1일 1회", interactions: ["항콜린제", "NSAIDs"], sideEffects: ["구토", "설사", "서맥"], contraindications: ["이 약 과민증 환자"] },
+          { id: 83, name: "메만틴 (Memantine)", category: "알츠하이머 치매 치료제", timing: "일정 시간 식사 무관", dosage: "5-20mg 1일 1회", interactions: ["덱스트로메토르판", "아만타딘"], sideEffects: ["어지러움", "두통", "변비"], contraindications: ["중증 신장애 환자"] },
+          { id: 84, name: "발프로산 나트륨 (Sodium Valproate)", category: "항경련제/조울증 치료제", timing: "식후 즉시 분할 복용", dosage: "400-1200mg 1일 분할", interactions: ["카바페넴계 항생제"], sideEffects: ["체중 증가", "탈모", "간독성"], contraindications: ["임산부", "췌장염 환자"] },
+          { id: 85, name: "레비티라세탐 (Levetiracetam)", category: "항경련제", timing: "아침/저녁 일정 시간", dosage: "500-1500mg 1일 2회", interactions: [], sideEffects: ["졸음", "피로", "감정 기복"], contraindications: ["이 약 과민증 환자"] },
+          { id: 86, name: "아모시실린 (Amoxicillin)", category: "페니실린계 항생제", timing: "일정 간격 식후 복용", dosage: "250-500mg 1일 3회", interactions: ["경구 피임약", "알로푸리놀"], sideEffects: ["설사", "피부 발진"], contraindications: ["페니실린계 과민증 환자"] },
+          { id: 87, name: "아모시실린/클라불란산 (Amoxicillin/Clavulanate)", category: "페니실린계 복합 항생제", timing: "식사 시작 전 또는 식사 직후", dosage: "375-625mg 1일 3회", interactions: ["항응고제", "메토트렉세이트"], sideEffects: ["설사", "질 진균 감염"], contraindications: ["이전 동 약물로 인한 간장애 환자"] },
+          { id: 88, name: "세파클러 (Cefaclor)", category: "세팔로스포린계 항생제 (2세대)", timing: "8시간 간격 식후 복용", dosage: "250-500mg 1일 3회", interactions: ["제산제", "프로베네시드"], sideEffects: ["설사", "피부 소양증"], contraindications: ["세파계 항생제 과민증 환자"] },
+          { id: 89, name: "세프디토렌 피복실 (Cefditoren)", category: "세팔로스포린계 항생제 (3세대)", timing: "식후 복용", dosage: "100-200mg 1일 3회", interactions: ["제산제", "H2차단제"], sideEffects: ["설사", "오심"], contraindications: ["카르니틴 결핍증 환자"] },
+          { id: 90, name: "레보플록사신 (Levofloxacin)", category: "퀴놀론계 항생제", timing: "식사 무관 일정 시간 (물과 복용)", dosage: "250-500mg 1일 1회", interactions: ["제산제", "철분제", "NSAIDs"], sideEffects: ["아킬레스건염 위험", "광과민성"], contraindications: ["18세 미만 소아 및 청소년", "임산부"] },
+          { id: 91, name: "클라리스로마이신 (Clarithromycin)", category: "마크로라이드계 항생제", timing: "식후 복용", dosage: "250-500mg 1일 2회", interactions: ["아토르바스타틴", "로수바스타틴", "디곡신"], sideEffects: ["금속성 미각", "설사"], contraindications: ["피모짓 병용 환자"] },
+          { id: 92, name: "아지스로마이신 (Azithromycin)", category: "마크로라이드계 항생제", timing: "정제는 식사 무관 / 캡슐제는 식전 공복", dosage: "250-500mg 1일 1회", interactions: ["제산제", "와파린"], sideEffects: ["설사", "구토"], contraindications: ["맥각 알칼로이드 병용 환자"] },
+          { id: 93, name: "오셀타미비르 (Oseltamivir)", category: "독감 치료제", timing: "12시간 간격 5일간 복용", dosage: "75mg 1일 2회", interactions: [], sideEffects: ["구토", "오심", "이상행동 모니터링 필요"], contraindications: ["이 약 과민증 환자"] },
+          { id: 94, name: "아시클로버 (Acyclovir)", category: "항바이러스제", timing: "일정 간격 식사 무관", dosage: "200-800mg 1일 4~5회", interactions: ["프로베네시드", "시메티딘"], sideEffects: ["신장 독성", "두통"], contraindications: ["이 약 성분에 중증 과민증 환자"] },
+          { id: 95, name: "플루코나졸 (Fluconazole)", category: "항진균제", timing: "식사 무관 일정 시간", dosage: "50-150mg 1일 1회", interactions: ["아토르바스타틴", "로수바스타틴", "와파린", "세레콕시브"], sideEffects: ["간수치 상승", "피부 발진"], contraindications: ["QT 연장 약물 병용 환자"] },
+          { id: 96, name: "탐스로신 염산염 (Tamsulosin)", category: "전립선비대증 치료제", timing: "아침 식후 일정 시간", dosage: "0.2-0.4mg 1일 1회", interactions: ["다른 혈압약"], sideEffects: ["기립성 저혈압", "어지러움"], contraindications: ["중증 간기능 장애 환자"] },
+          { id: 97, name: "피나스테리드 (Finasteride)", category: "탈모/전립선비대증 치료제", timing: "매일 일정하게", dosage: "1mg", interactions: [], sideEffects: ["성욕 감퇴", "발기 부전"], contraindications: ["임산부 및 가임기 여성"] },
+          { id: 98, name: "오메가-3 지방산 에스테르 (Omega-3)", category: "건강기능식품", timing: "식후 즉시 복용", dosage: "1-4g 1일 1~2회", interactions: ["아스피린", "클로피도그렐", "리바록사반", "아피사반", "와파린"], sideEffects: ["소화불량", "생선 냄새 트림"], contraindications: ["생선 과민증 환자"] },
+          { id: 99, name: "콜레칼시페롤 (Vit D3)", category: "건강기능식품", timing: "식후 즉시 복용", dosage: "1000-5000IU 1일 1회", interactions: ["제산제"], sideEffects: ["고칼슘혈증 (과량 복용 시)"], contraindications: ["고칼슘혈증 환자"] },
+          { id: 100, name: "아스코르브산 (Vit C)", category: "건강기능식품", timing: "식후 즉시", dosage: "500-2000mg 1일 1~2회", interactions: ["와파린"], sideEffects: ["위통", "설사 (과량 복용 시)"], contraindications: ["신장결석 기왕력자"] }
+        ];
+
+        // 상태 변수: 내 약 상자에 등록된 약물 ID 배열
+        let myMeds = [];
+
+        // DOM 로드 완료 시 초기 화면 렌더링
+        document.addEventListener("DOMContentLoaded", () => {
+            filterDrugs();
+            updateMyMedsUI();
+        });
+
+        // 1. 다중 조건 의약품 실시간 검색 및 필터링
+        function filterDrugs() {
+            const query = document.getElementById("searchInput").value.toLowerCase().trim();
+            const filtered = drugDatabase.filter(drug => 
+                drug.name.toLowerCase().includes(query) || 
+                drug.category.toLowerCase().includes(query) ||
+                (drug.sideEffects && drug.sideEffects.some(se => se.toLowerCase().includes(query)))
+            );
+
+            document.getElementById("resultCount").innerText = `${filtered.length}개`;
+            renderDrugList(filtered);
+        }
+
+        // 2. 검색창 아래 검색 목록 렌더링
+        function renderDrugList(drugs) {
+            const container = document.getElementById("drugList");
+            container.innerHTML = "";
+
+            if (drugs.length === 0) {
+                container.innerHTML = `
+                    <div class="p-12 text-center text-slate-400 text-sm">
+                        <i class="fa-solid fa-folder-open text-4xl mb-3 text-slate-300 block"></i>
+                        해당 조건으로 등록된 약물이 존재하지 않습니다.
+                    </div>`;
+                return;
+            }
+
+            drugs.forEach(drug => {
+                const isAdded = myMeds.includes(drug.id);
+                const item = document.createElement("div");
+                item.className = "p-5 hover:bg-slate-50 transition flex justify-between items-start gap-4";
+                item.innerHTML = `
+                    <div class="space-y-2 flex-1">
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <span class="font-bold text-slate-800 text-base">${drug.name}</span>
+                            <span class="bg-emerald-50 text-emerald-700 border border-emerald-100 text-[11px] px-2.5 py-0.5 rounded-full font-semibold">${drug.category}</span>
+                        </div>
+                        <div class="text-xs text-slate-500 space-y-1">
+                            <p><strong><i class="fa-regular fa-clock mr-1"></i> 복용 스케줄:</strong> ${drug.timing} (${drug.dosage})</p>
+                            <p><strong><i class="fa-solid fa-triangle-exclamation mr-1 text-red-400"></i> 이상 반응:</strong> ${drug.sideEffects.join(", ")}</p>
+                            ${drug.contraindications && drug.contraindications.length > 0 ? `<p class="text-rose-600 font-medium"><strong><i class="fa-solid fa-ban mr-1"></i> 투여 금기:</strong> ${drug.contraindications.join(", ")}</p>` : ''}
+                        </div>
+                    </div>
+                    <div>
+                        <button onclick="toggleMed(${drug.id})" 
+                            class="w-10 h-10 rounded-xl flex items-center justify-center transition-all ${
+                                isAdded 
+                                ? 'bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 shadow-sm' 
+                                : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-600 border border-emerald-200 shadow-sm'
+                            }"
+                            title="${isAdded ? '내 약 상자에서 제거' : '내 약 상자에 추가'}">
+                            <i class="fa-solid ${isAdded ? 'fa-minus' : 'fa-plus'}"></i>
+                        </button>
+                    </div>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        // 3. 내 약 상자 온/오프 토글 함수
+        function toggleMed(id) {
+            const index = myMeds.indexOf(id);
+            if (index > -1) {
+                myMeds.splice(index, 1);
+            } else {
+                myMeds.push(id);
+            }
+            updateMyMedsUI();
+            filterDrugs(); // 목록 버튼 상태 연계 동기화
+        }
+
+        // 4. 내 약 상자 렌더링 동적 업데이트
+        function updateMyMedsUI() {
+            const container = document.getElementById("myMedsContainer");
+            document.getElementById("myMedCount").innerText = `${myMeds.length}개`;
+            container.innerHTML = "";
+
+            if (myMeds.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center text-slate-400 text-sm py-8 border-2 border-dashed border-slate-200 rounded-xl">
+                        <i class="fa-solid fa-prescription-bottle text-3xl mb-2.5 block text-slate-300"></i>
+                        추가된 약물이 없습니다.<br><span class="text-xs text-slate-400">약물 검색 후 [+] 버튼을 눌러보세요.</span>
+                    </div>`;
+                runInteractionAnalysis();
+                return;
+            }
+
+            myMeds.forEach(id => {
+                const drug = drugDatabase.find(d => d.id === id);
+                if (drug) {
+                    const card = document.createElement("div");
+                    card.className = "p-3.5 bg-slate-50 border border-slate-200 rounded-xl flex justify-between items-center hover:border-slate-300 transition-all";
+                    card.innerHTML = `
+                        <div class="flex-1 min-w-0 pr-2">
+                            <p class="font-bold text-sm text-slate-800 truncate">${drug.name}</p>
+                            <p class="text-[11px] text-slate-500 truncate">${drug.category}</p>
+                        </div>
+                        <button onclick="toggleMed(${drug.id})" class="text-slate-400 hover:text-rose-600 transition p-1.5" title="제거">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    `;
+                    container.appendChild(card);
+                }
+            });
+
+            runInteractionAnalysis();
+        }
+
+        // 5. 교차 약물 및 식품 필터링 실시간 알고리즘
+        function runInteractionAnalysis() {
+            const container = document.getElementById("analysisContainer");
+            container.innerHTML = "";
+
+            if (myMeds.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center text-slate-400 text-xs py-10 bg-slate-50 border border-slate-200 border-dashed rounded-xl">
+                        분석 대상 약물이 없습니다.
+                    </div>`;
+                return;
+            }
+
+            const activeDrugs = myMeds.map(id => drugDatabase.find(d => d.id === id)).filter(Boolean);
+            const warnings = [];
+
+            // 크로스체킹 루프
+            for (let i = 0; i < activeDrugs.length; i++) {
+                const drugA = activeDrugs[i];
+
+                // A. 특정 외부인자(식품, 알코올 등) 경고 로직
+                const foodInteractions = drugA.interactions.filter(item => ["자몽주스", "알코올", "비타민 K 식품"].includes(item));
+                foodInteractions.forEach(food => {
+                    warnings.push({
+                        type: 'food',
+                        title: `⚠️ 복용 주의 (${drugA.name.split(' ')[0]})`,
+                        desc: `이 약은 <strong>${food}</strong>와(과) 함께 대사될 때 부작용 가능성이 커집니다. 복용 중 섭취를 중단하거나 주의해 주세요.`
+                    });
+                });
+
+                // B. 복용 약물 상호 교차작용 매칭
+                for (let j = i + 1; j < activeDrugs.length; j++) {
+                    const drugB = activeDrugs[j];
+
+                    // 상호작용 매칭 규칙 (이름, 분류, 대표 수식어)
+                    const checkAtoB = drugA.interactions.some(inter => 
+                        drugB.name.toLowerCase().includes(inter.toLowerCase()) || 
+                        drugB.category.toLowerCase().includes(inter.toLowerCase()) ||
+                        (inter === "NSAIDs" && drugB.category.includes("NSAIDs"))
+                    );
+
+                    const checkBtoA = drugB.interactions.some(inter => 
+                        drugA.name.toLowerCase().includes(inter.toLowerCase()) || 
+                        drugA.category.toLowerCase().includes(inter.toLowerCase()) ||
+                        (inter === "NSAIDs" && drugA.category.includes("NSAIDs"))
+                    );
+
+                    if (checkAtoB || checkBtoA) {
+                        warnings.push({
+                            type: 'danger',
+                            title: `🚫 병용 금기 위험 (${drugA.name.split(' ')[0]} ↔ ${drugB.name.split(' ')[0]})`,
+                            desc: `<strong>${drugA.name.split(' ')[0]}</strong>와(과) <strong>${drugB.name.split(' ')[0]}</strong>은(는) 동시 복용 시 약리 반응을 저해하거나, 이상반응 빈도를 높일 수 있으므로 동시 처방을 금합니다.`
+                        });
+                    }
+                }
+            }
+
+            // 분석 리포트 화면 반영
+            if (warnings.length === 0) {
+                container.innerHTML = `
+                    <div class="p-5 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center gap-3 text-emerald-800">
+                        <i class="fa-solid fa-circle-check text-2xl text-emerald-600"></i>
+                        <div class="text-xs">
+                            <p class="font-bold text-sm text-emerald-900">병용 위험 분석 안전</p>
+                            <p class="text-emerald-700 mt-1 leading-relaxed">내 약 상자에 구성된 약물 간의 상호 위험 요소가 확인되지 않았습니다.</p>
+                        </div>
+                    </div>`;
+            } else {
+                warnings.forEach(warn => {
+                    const warnDiv = document.createElement("div");
+                    const isFood = warn.type === 'food';
+                    warnDiv.className = `p-4 border rounded-xl flex items-start gap-3 transition-all ${
+                        isFood 
+                        ? 'bg-amber-50 border-amber-200 text-amber-900 shadow-sm' 
+                        : 'bg-rose-50 border-rose-200 text-rose-900 shadow-sm'
+                    }`;
+                    warnDiv.innerHTML = `
+                        <i class="fa-solid ${isFood ? 'fa-triangle-exclamation text-amber-500' : 'fa-circle-xmark text-rose-600'} text-lg mt-0.5"></i>
+                        <div class="text-xs space-y-1">
+                            <p class="font-bold text-sm ${isFood ? 'text-amber-950' : 'text-rose-950'}">${warn.title}</p>
+                            <p class="leading-relaxed">${warn.desc}</p>
+                        </div>
+                    `;
+                    container.appendChild(warnDiv);
+                });
+            }
+        }
+    </script>
+</body>
+</html>
